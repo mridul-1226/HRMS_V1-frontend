@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "74308265195",
+    "project_id": "hrms-6d0e8",
+    "storage_bucket": "hrms-6d0e8.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:74308265195:android:7869107890934ef35a8aae",
+        "android_client_info": {
+          "package_name": "com.mridul.hrms"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "74308265195-gqteq34ui2pj8tlga0tngglov8lvh6jj.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCy4R2IAlfwDz20hVGH04N3vS7BZnw-GT8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "74308265195-gqteq34ui2pj8tlga0tngglov8lvh6jj.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
