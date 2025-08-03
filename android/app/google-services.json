@@ -14,6 +14,22 @@
       },
       "oauth_client": [
         {
+          "client_id": "74308265195-0of6rc92kdkb6ddso1qq953a56s19b1p.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.mridul.hrms",
+            "certificate_hash": "53824808d08ee2857533312d0e95bc9261dddf6e"
+          }
+        },
+        {
+          "client_id": "74308265195-h57ip7nea1kt5d6dg5h02rnfv6j2mmm6.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.mridul.hrms",
+            "certificate_hash": "458fd066d6b975a0528c6c9e6815b2c796c76df9"
+          }
+        },
+        {
           "client_id": "74308265195-gqteq34ui2pj8tlga0tngglov8lvh6jj.apps.googleusercontent.com",
           "client_type": 3
         }
@@ -29,6 +45,13 @@
             {
               "client_id": "74308265195-gqteq34ui2pj8tlga0tngglov8lvh6jj.apps.googleusercontent.com",
               "client_type": 3
+            },
+            {
+              "client_id": "74308265195-1rkdihv255mdokae3gdot4vbu0frulnn.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.mridul.hrms"
+              }
             }
           ]
         }

@@ -1,11 +1,16 @@
 import 'dart:developer';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
 class GoogleAuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
-  final GoogleSignIn _googleSignIn = GoogleSignIn();
+  final GoogleSignIn _googleSignIn = GoogleSignIn(
+    scopes: ['email', 'profile'],
+    clientId: 'http://74308265195-gqteq34ui2pj8tlga0tngglov8lvh6jj.apps.googleusercontent.com',
+  );
+
   Future<Map<String, String>?> signIn() async {
     try {
       final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
@@ -18,6 +23,7 @@ class GoogleAuthService {
       final AuthCredential credential = GoogleAuthProvider.credential(
         accessToken: googleAuth.accessToken,
         idToken: googleAuth.idToken,
+      
       );
 
       final UserCredential userCredential = await _auth.signInWithCredential(credential);
@@ -25,6 +31,7 @@ class GoogleAuthService {
 
       if (user != null) {
         final idToken = await user.getIdToken(true);
+        await Clipboard.setData(ClipboardData(text: idToken ?? 'no token found'));
         return {
           'email': user.email ?? '',
           'displayName': user.displayName ?? '',
@@ -45,7 +52,6 @@ class GoogleAuthService {
   Future<void> signOut() async {
     try {
       await _googleSignIn.signOut();
-      await _googleSignIn.disconnect();
       await _auth.signOut();
     } catch (e) {
       log('Google Sign-Out Error: $e');
@@ -54,4 +60,5 @@ class GoogleAuthService {
 
   GoogleSignInAccount? get currentUser => _googleSignIn.currentUser;
 }
+
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
