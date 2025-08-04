@@ -8,7 +8,7 @@ class GoogleAuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final GoogleSignIn _googleSignIn = GoogleSignIn(
     scopes: ['email', 'profile'],
-    clientId: 'http://74308265195-gqteq34ui2pj8tlga0tngglov8lvh6jj.apps.googleusercontent.com',
+    clientId: '74308265195-gqteq34ui2pj8tlga0tngglov8lvh6jj.apps.googleusercontent.com',
   );
 
   Future<Map<String, String>?> signIn() async {
@@ -23,7 +23,6 @@ class GoogleAuthService {
       final AuthCredential credential = GoogleAuthProvider.credential(
         accessToken: googleAuth.accessToken,
         idToken: googleAuth.idToken,
-      
       );
 
       final UserCredential userCredential = await _auth.signInWithCredential(credential);
@@ -42,6 +41,7 @@ class GoogleAuthService {
       return null;
     } catch (e) {
       log('Google Sign-In Error: $e');
+      await signOut();
       ScaffoldMessenger.of(navigatorKey.currentContext!).showSnackBar(
         SnackBar(content: Text('Error during Google Sign-In')),
       );
