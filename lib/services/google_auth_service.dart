@@ -31,6 +31,7 @@ class GoogleAuthService {
       if (user != null) {
         final idToken = await user.getIdToken(true);
         await Clipboard.setData(ClipboardData(text: idToken ?? 'no token found'));
+        log(idToken ?? 'No token found');
         return {
           'email': user.email ?? '',
           'displayName': user.displayName ?? '',
