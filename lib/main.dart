@@ -1,16 +1,26 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:go_router/go_router.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:hrms/core/di/dependency_injector.dart';
+import 'package:hrms/core/di/get_it.dart';
 import 'package:hrms/features/auth/presentation/screens/welcome_screen.dart';
 import 'package:hrms/features/auth/presentation/screens/organization_signup_screen.dart';
 import 'package:hrms/features/auth/presentation/screens/organization_details_screen.dart';
 import 'package:hrms/features/auth/presentation/screens/login_screen.dart';
 import 'package:hrms/features/auth/presentation/screens/change_password_screen.dart';
+import 'package:hrms/features/dashboard/views/admin_dashboard.dart';
+import 'package:hrms/firebase_options.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
-  runApp(MyApp());
+
+  await setupLocator();
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  await dotenv.load(fileName: ".env");
+
+  runApp(DependencyInjector(child: MyApp()));
 }
 
 final GoRouter _router = GoRouter(
@@ -47,11 +57,11 @@ final GoRouter _router = GoRouter(
       name: 'change-password',
       builder: (context, state) => ChangePasswordScreen(),
     ),
-    // GoRoute(
-    //   path: '/admin-dashboard',
-    //   name: 'admin-dashboard',
-    //   builder: (context, state) => AdminDashboardScreen(),
-    // ),
+    GoRoute(
+      path: '/admin-dashboard',
+      name: 'admin-dashboard',
+      builder: (context, state) => AdminDashboardScreen(),
+    ),
     // GoRoute(
     //   path: '/employee-dashboard',
     //   name: 'employee-dashboard',

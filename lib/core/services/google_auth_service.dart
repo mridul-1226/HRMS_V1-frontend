@@ -11,11 +11,11 @@ class GoogleAuthService {
     clientId: '74308265195-gqteq34ui2pj8tlga0tngglov8lvh6jj.apps.googleusercontent.com',
   );
 
-  Future<Map<String, String>?> signIn() async {
+  Future<String?> signIn() async {
     try {
       final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
       if (googleUser == null) {
-        return null; // User cancelled the sign-in
+        return null;
       }
 
       final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
@@ -32,11 +32,7 @@ class GoogleAuthService {
         final idToken = await user.getIdToken(true);
         await Clipboard.setData(ClipboardData(text: idToken ?? 'no token found'));
         log(idToken ?? 'No token found');
-        return {
-          'email': user.email ?? '',
-          'displayName': user.displayName ?? '',
-          'idToken': idToken ?? '',
-        };
+        return idToken;
       }
 
       return null;
