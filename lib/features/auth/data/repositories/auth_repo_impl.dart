@@ -22,12 +22,18 @@ class AuthRepositoryImpl implements AuthRepository {
         throw Exception('Failed to sign in with Google: ${response.data}');
       }
 
-      if(response.data['success'] != true) {
+      if (response.data['success'] != true) {
         throw Exception(response.data['error'] ?? 'Unknown error occurred');
       }
 
-      await securedStorage.writeData(LocalStorageKeys.token, response.data['data']['access_token']);
-      await securedStorage.writeData(LocalStorageKeys.token, response.data['data']['refresh_token']);
+      await securedStorage.writeData(
+        LocalStorageKeys.token,
+        response.data['data']['access_token'],
+      );
+      await securedStorage.writeData(
+        LocalStorageKeys.token,
+        response.data['data']['refresh_token'],
+      );
       return response.data['data']['user'];
     } catch (e) {
       throw Exception('Failed to sign in with Google: $e');
@@ -47,9 +53,42 @@ class AuthRepositoryImpl implements AuthRepository {
   Future<Map<String, dynamic>> registerWithEmailAndPassword(
     String email,
     String password,
+    String confirmPassword,
+    String name,
   ) async {
-    // TODO: Implement email/password registration logic
-    throw UnimplementedError();
+    final securedStorage = getIt<SecureStorageService>();
+    final endpoint = '${dotenv.env['BASE_URL']}${AuthRoutes.googleSignIn}'; //TODO
+    try {
+      final response = await _dio.post(
+        endpoint,
+        data: {
+          'name': name,
+          'email': email,
+          'password': password,
+          'confirmPassword': confirmPassword,
+        },
+      );
+
+      if (response.statusCode != 200) {
+        throw Exception('Failed to sign in with Google: ${response.data}');
+      }
+
+      if (response.data['success'] != true) {
+        throw Exception(response.data['error'] ?? 'Unknown error occurred');
+      }
+
+      await securedStorage.writeData(
+        LocalStorageKeys.token,
+        response.data['data']['access_token'],
+      );
+      await securedStorage.writeData(
+        LocalStorageKeys.token,
+        response.data['data']['refresh_token'],
+      );
+      return response.data['data']['user'];
+    } catch (e) {
+      throw Exception('Failed to sign in with Google: $e');
+    }
   }
 
   @override

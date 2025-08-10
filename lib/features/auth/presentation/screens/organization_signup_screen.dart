@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:hrms/core/utils/toast.dart';
 import 'package:hrms/features/auth/presentation/blocs/auth_bloc/auth_bloc.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
 
@@ -24,11 +25,9 @@ class _OrganizationSignupScreenState extends State<OrganizationSignupScreen> {
     return BlocListener<AuthBloc, AuthState>(
       listener: (context, state) {
         if (state is Authenticated) {
-          context.goNamed('admin-dashboard');
+          context.goNamed('organization-details');
         } else if (state is AuthError) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(state.message), backgroundColor: Colors.red),
-          );
+          Toast.show(message: state.message, isError: true);
         }
       },
       child: BlocBuilder<AuthBloc, AuthState>(
@@ -167,7 +166,19 @@ class _OrganizationSignupScreenState extends State<OrganizationSignupScreen> {
                           width: double.infinity,
                           height: 50,
                           child: ElevatedButton(
-                            onPressed: isLoading ? null : () {},
+                            onPressed: isLoading ? null : () {
+                              if (_formKey.currentState?.validate() ?? false) {
+                                context.read<AuthBloc>().add(
+                                  LoginWithEmailPasswordRequested(
+                                    email: _emailController.text.trim(),
+                                    password: _passwordController.text.trim(),
+                                    fullName: _fullNameController.text.trim(),
+                                    confirmPassword:
+                                        _confirmPasswordController.text.trim(),
+                                  ),
+                                );
+                              }
+                            },
                             child:
                                 isLoading
                                     ? CircularProgressIndicator(
@@ -204,16 +215,6 @@ class _OrganizationSignupScreenState extends State<OrganizationSignupScreen> {
       ),
     );
   }
-
-  // void _createAccount() async {
-  //   if (_formKey.currentState?.validate() ?? false) {
-  //     setState(() => _isLoading = true);
-
-  //     await Future.delayed(Duration(seconds: 2));
-  //     setState(() => _isLoading = false);
-  //     context.goNamed('verify-email', extra: _emailController.text);
-  //   }
-  // }
 
   @override
   void dispose() {
