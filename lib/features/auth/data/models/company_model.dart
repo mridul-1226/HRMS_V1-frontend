@@ -43,6 +43,13 @@ class CompanyModel extends Company {
       'email': email,
       'username': username,
       'profile_picture': profilePicture,
+      'industry': industry,
+      'size': size,
+      'address': address,
+      'phone': phone,
+      'logo': logo,
+      'tax_id': taxId,
+      'website': website,
     };
   }
 }

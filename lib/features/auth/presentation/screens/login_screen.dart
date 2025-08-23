@@ -21,8 +21,11 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget build(BuildContext context) {
     return BlocListener<AuthBloc, AuthState>(
       listener: (context, state) {
+        if (state is! AuthLoading) {
+          setState(() => _isLoading = false);
+        }
         if (state is Authenticated) {
-          context.goNamed('admin-dashboard');
+          context.goNamed('organization-details');
         } else if (state is AuthError) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text(state.message), backgroundColor: Colors.red),
@@ -169,11 +172,12 @@ class _LoginScreenState extends State<LoginScreen> {
     if (_formKey.currentState?.validate() ?? false) {
       setState(() => _isLoading = true);
 
-      await Future.delayed(Duration(seconds: 2));
-      setState(() => _isLoading = false);
-      if (!mounted) return;
-
-      context.goNamed('admin-dashboard');
+      context.read<AuthBloc>().add(
+        LoginWithEmailPasswordRequested(
+          email: _emailController.text,
+          password: _passwordController.text,
+        ),
+      );
     }
   }
 

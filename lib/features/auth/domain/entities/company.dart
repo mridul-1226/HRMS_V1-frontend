@@ -11,6 +11,7 @@ class Company extends Equatable {
   final String? size;
   final String? address;
   final String? phone;
+  final String? countryCode;
   final String? logo;
   final String? taxId;
   final String? website;
@@ -25,6 +26,7 @@ class Company extends Equatable {
     this.industry,
     this.size,
     this.address,
+    this.countryCode,
     this.phone,
     this.logo,
     this.taxId,

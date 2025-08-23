@@ -4,20 +4,21 @@ import 'package:go_router/go_router.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:hrms/core/di/dependency_injector.dart';
 import 'package:hrms/core/di/get_it.dart';
+import 'package:hrms/features/admin/presentation/screens/admin_dashboard_screen.dart';
 import 'package:hrms/features/auth/presentation/screens/welcome_screen.dart';
 import 'package:hrms/features/auth/presentation/screens/organization_signup_screen.dart';
 import 'package:hrms/features/auth/presentation/screens/organization_details_screen.dart';
 import 'package:hrms/features/auth/presentation/screens/login_screen.dart';
 import 'package:hrms/features/auth/presentation/screens/change_password_screen.dart';
-import 'package:hrms/features/dashboard/views/admin_dashboard.dart';
+import 'package:hrms/features/initialization/splash_screen.dart';
 import 'package:hrms/firebase_options.dart';
+import 'package:oktoast/oktoast.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp();
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
   await setupLocator();
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   await dotenv.load(fileName: ".env");
 
   runApp(DependencyInjector(child: MyApp()));
@@ -28,6 +29,11 @@ final GoRouter _router = GoRouter(
   routes: [
     GoRoute(
       path: '/',
+      name: 'splash',
+      builder: (context, state) => SplashScreen(),
+    ),
+    GoRoute(
+      path: '/welcome',
       name: 'welcome',
       builder: (context, state) => WelcomeScreen(),
     ),
@@ -80,12 +86,15 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp.router(
-      title: 'HRMS App',
-      routerConfig: _router,
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
-        visualDensity: VisualDensity.adaptivePlatformDensity,
+    return OKToast(
+      child: MaterialApp.router(
+        title: 'HRMS App',
+        debugShowCheckedModeBanner: false,
+        routerConfig: _router,
+        theme: ThemeData(
+          primarySwatch: Colors.blue,
+          visualDensity: VisualDensity.adaptivePlatformDensity,
+        ),
       ),
     );
   }

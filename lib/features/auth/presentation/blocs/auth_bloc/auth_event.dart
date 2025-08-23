@@ -14,10 +14,23 @@ class GoogleSignInRequested extends AuthEvent {
 class LoginWithEmailPasswordRequested extends AuthEvent {
   final String email;
   final String password;
+
+  const LoginWithEmailPasswordRequested({
+    required this.email,
+    required this.password,
+  });
+
+  @override
+  List<Object> get props => [email, password];
+}
+
+class RegisterWithEmailPasswordRequested extends AuthEvent {
+  final String email;
+  final String password;
   final String confirmPassword;
   final String fullName;
 
-  const LoginWithEmailPasswordRequested({
+  const RegisterWithEmailPasswordRequested({
     required this.email,
     required this.password,
     required this.confirmPassword,

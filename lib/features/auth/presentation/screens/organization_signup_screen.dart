@@ -1,3 +1,5 @@
+import 'dart:developer';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -27,6 +29,7 @@ class _OrganizationSignupScreenState extends State<OrganizationSignupScreen> {
         if (state is Authenticated) {
           context.goNamed('organization-details');
         } else if (state is AuthError) {
+          log(state.message);
           Toast.show(message: state.message, isError: true);
         }
       },
@@ -103,7 +106,7 @@ class _OrganizationSignupScreenState extends State<OrganizationSignupScreen> {
                         TextFormField(
                           controller: _fullNameController,
                           decoration: InputDecoration(
-                            labelText: 'Full Name (Optional)',
+                            labelText: 'Full Name',
                             border: OutlineInputBorder(),
                           ),
                         ),
@@ -166,19 +169,26 @@ class _OrganizationSignupScreenState extends State<OrganizationSignupScreen> {
                           width: double.infinity,
                           height: 50,
                           child: ElevatedButton(
-                            onPressed: isLoading ? null : () {
-                              if (_formKey.currentState?.validate() ?? false) {
-                                context.read<AuthBloc>().add(
-                                  LoginWithEmailPasswordRequested(
-                                    email: _emailController.text.trim(),
-                                    password: _passwordController.text.trim(),
-                                    fullName: _fullNameController.text.trim(),
-                                    confirmPassword:
-                                        _confirmPasswordController.text.trim(),
-                                  ),
-                                );
-                              }
-                            },
+                            onPressed:
+                                isLoading
+                                    ? null
+                                    : () {
+                                      if (_formKey.currentState?.validate() ??
+                                          false) {
+                                        context.read<AuthBloc>().add(
+                                          RegisterWithEmailPasswordRequested(
+                                            email: _emailController.text.trim(),
+                                            password:
+                                                _passwordController.text.trim(),
+                                            fullName:
+                                                _fullNameController.text.trim(),
+                                            confirmPassword:
+                                                _confirmPasswordController.text
+                                                    .trim(),
+                                          ),
+                                        );
+                                      }
+                                    },
                             child:
                                 isLoading
                                     ? CircularProgressIndicator(
@@ -200,13 +210,14 @@ class _OrganizationSignupScreenState extends State<OrganizationSignupScreen> {
                 ),
               ),
               if (isLoading)
-                Positioned.fill(
-                  child: Container(
-                    color: Colors.black.withValues(alpha: 0.3),
-                    child: LoadingAnimationWidget.staggeredDotsWave(
-                      color: Theme.of(context).primaryColor,
-                      size: 200,
-                    ),
+                Container(
+                  height: double.infinity,
+                  width: double.infinity,
+                  alignment: Alignment.center,
+                  color: Colors.black.withValues(alpha: 0.3),
+                  child: LoadingAnimationWidget.staggeredDotsWave(
+                    color: Theme.of(context).primaryColor,
+                    size: 150,
                   ),
                 ),
             ],

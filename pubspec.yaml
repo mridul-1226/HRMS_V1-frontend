@@ -50,6 +50,7 @@ dependencies:
   oktoast: ^3.4.0
   google_fonts: ^6.3.0
   flutter_screenutil: ^5.9.3
+  jwt_decoder: ^2.0.1
 
 dev_dependencies:
   flutter_test:

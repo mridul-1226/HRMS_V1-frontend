@@ -5,6 +5,7 @@ class LocalStorageKeys {
   static const String name = 'name';
   static const String email = 'email';
   static const String userId = 'user_id';
+  static const String username = 'username';
   static const String profilePicture = 'profile_picture';
   static const String companyId = 'company_id';
   static const String companyName = 'company_name';
@@ -15,4 +16,5 @@ class LocalStorageKeys {
   static const String employeeDepartment = 'employee_department';
   static const String employeePosition = 'employee_position';
   static const String onboardingCompleted = 'onboarding_completed';
+  static const String isLoggedIn = 'is_logged_in';
   }

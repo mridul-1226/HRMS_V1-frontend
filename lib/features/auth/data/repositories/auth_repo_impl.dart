@@ -31,7 +31,7 @@ class AuthRepositoryImpl implements AuthRepository {
         response.data['data']['access_token'],
       );
       await securedStorage.writeData(
-        LocalStorageKeys.token,
+        LocalStorageKeys.refreshToken,
         response.data['data']['refresh_token'],
       );
       return response.data['data']['user'];
@@ -45,8 +45,43 @@ class AuthRepositoryImpl implements AuthRepository {
     String email,
     String password,
   ) async {
-    // TODO: Implement email/password login logic
-    throw UnimplementedError();
+    final securedStorage = getIt<SecureStorageService>();
+    final endpoint = '${dotenv.env['BASE_URL']}${AuthRoutes.loginWithEmailPassword}';
+    try {
+      final response = await _dio.post(endpoint, data: {
+        'email': email,
+        'password': password,
+      });
+
+      if (response.statusCode != 200) {
+        throw Exception('Failed to login: ${response.data}');
+      }
+
+      if (response.data['success'] != true) {
+        throw Exception(response.data['error'] ?? 'Unknown error occurred');
+      }
+
+      await securedStorage.writeData(
+        LocalStorageKeys.token,
+        response.data['data']['access_token'],
+      );
+
+      if (response.data['success'] != true) {
+        throw Exception(response.data['error'] ?? 'Unknown error occurred');
+      }
+
+      await securedStorage.writeData(
+        LocalStorageKeys.token,
+        response.data['data']['access_token'],
+      );
+      await securedStorage.writeData(
+        LocalStorageKeys.refreshToken,
+        response.data['data']['refresh_token'],
+      );
+      return response.data['data']['user'];
+    } catch (e) {
+      throw Exception('Failed to sign in with Google: $e');
+    }
   }
 
   @override
@@ -57,7 +92,7 @@ class AuthRepositoryImpl implements AuthRepository {
     String name,
   ) async {
     final securedStorage = getIt<SecureStorageService>();
-    final endpoint = '${dotenv.env['BASE_URL']}${AuthRoutes.googleSignIn}'; //TODO
+    final endpoint = '${dotenv.env['BASE_URL']}${AuthRoutes.googleSignIn}';
     try {
       final response = await _dio.post(
         endpoint,

@@ -1,3 +1,5 @@
+import 'dart:developer';
+
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:hrms/core/config/local_storage_keys.dart';
@@ -8,6 +10,7 @@ import 'package:hrms/features/auth/data/models/company_model.dart';
 import 'package:hrms/features/auth/domain/repositories/auth_repo.dart';
 import 'package:hrms/features/auth/domain/use_cases/create_account_use_case.dart';
 import 'package:hrms/features/auth/domain/use_cases/google_sign_in_use_case.dart';
+import 'package:hrms/features/auth/domain/use_cases/login_use_case.dart';
 
 part 'auth_event.dart';
 part 'auth_state.dart';
@@ -27,8 +30,10 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         ).call(token);
         final companyUser = CompanyModel.fromJson(userJson);
         final prefs = getIt<SharedPrefService>();
+        await prefs.setBool(LocalStorageKeys.isLoggedIn, true);
         await prefs.setString(LocalStorageKeys.email, companyUser.email);
         await prefs.setString(LocalStorageKeys.name, companyUser.ownerName);
+        await prefs.setString(LocalStorageKeys.username, companyUser.username);
         await prefs.setString(
           LocalStorageKeys.profilePicture,
           companyUser.profilePicture ?? '',
@@ -37,7 +42,10 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
           LocalStorageKeys.companyLogo,
           companyUser.logo ?? '',
         );
-        await prefs.setString(LocalStorageKeys.userId, userJson['id'].toString());
+        await prefs.setString(
+          LocalStorageKeys.userId,
+          userJson['id'].toString(),
+        );
         await prefs.setString(
           LocalStorageKeys.companyId,
           companyUser.companyId,
@@ -55,29 +63,49 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       }
     });
 
+    on<LoginWithEmailPasswordRequested>((event, emit) async {
+      emit(AuthLoading());
+      try {
+        log('message');
+        final userJson = await LoginWithEmailAndPasswordUseCase(
+          getIt<AuthRepository>(),
+        ).call(event.email, event.password);
+        log('message2');
+        final companyUser = CompanyModel.fromJson(userJson);
+        final prefs = getIt<SharedPrefService>();
+        await prefs.setString(LocalStorageKeys.email, companyUser.email);
+        await prefs.setString(LocalStorageKeys.name, companyUser.ownerName);
 
-    on<LoginWithEmailPasswordRequested>(
-      (event, emit) async {
-        emit(AuthLoading());
-        try {
-          final userJson = await CreateAccountUseCase(getIt<AuthRepository>()).call(
-            email: event.email,
-            password: event.password,
-            confirmPassword: event.confirmPassword,
-            name: event.fullName,
-          );
-          final companyUser = CompanyModel.fromJson(userJson);
-          final prefs = getIt<SharedPrefService>();
-          await prefs.setString(LocalStorageKeys.email, companyUser.email);
-          await prefs.setString(LocalStorageKeys.name, companyUser.ownerName);
+        emit(Authenticated(userId: userJson['id'].toString()));
+      } catch (e) {
+        emit(
+          AuthError(message: e.toString().replaceAll('Exception:', '').trim()),
+        );
+      }
+    });
 
-          emit(Authenticated(userId: userJson['id'].toString()));
-        } catch (e) {
-          emit(
-            AuthError(message: e.toString().replaceAll('Exception:', '').trim()),
-          );
-        }
-      },
-    );
+    on<RegisterWithEmailPasswordRequested>((event, emit) async {
+      emit(AuthLoading());
+      try {
+        final userJson = await CreateAccountUseCase(
+          getIt<AuthRepository>(),
+        ).call(
+          email: event.email,
+          password: event.password,
+          confirmPassword: event.confirmPassword,
+          name: event.fullName,
+        );
+        final companyUser = CompanyModel.fromJson(userJson);
+        final prefs = getIt<SharedPrefService>();
+        await prefs.setString(LocalStorageKeys.email, companyUser.email);
+        await prefs.setString(LocalStorageKeys.name, companyUser.ownerName);
+
+        emit(Authenticated(userId: userJson['id'].toString()));
+      } catch (e) {
+        emit(
+          AuthError(message: e.toString().replaceAll('Exception:', '').trim()),
+        );
+      }
+    });
   }
 }
