@@ -1,3 +1,5 @@
+import 'dart:developer';
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -35,6 +37,7 @@ class _LoginScreenState extends State<LoginScreen> {
       child: BlocBuilder<AuthBloc, AuthState>(
         builder: (context, state) {
           final isLoading = state is AuthLoading || _isLoading;
+          log("isLoading: $isLoading");
           return Scaffold(
             appBar: AppBar(
               title: Text('Login'),
@@ -169,15 +172,18 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   void _login() async {
+    log('Login button pressed');
     if (_formKey.currentState?.validate() ?? false) {
       setState(() => _isLoading = true);
 
       context.read<AuthBloc>().add(
+        
         LoginWithEmailPasswordRequested(
-          email: _emailController.text,
+          email: _emailController.text.trim(),
           password: _passwordController.text,
         ),
       );
+       log("Email: ${_emailController.text}, Password: ${_passwordController.text}");
     }
   }
 

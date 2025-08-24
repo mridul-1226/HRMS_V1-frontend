@@ -46,7 +46,7 @@ class SplashBloc extends Bloc<SplashEvent, SplashState> {
       if (accessToken == null || accessToken.isEmpty) {
         emit(SplashLoading('Redirecting to login...'));
         await Future.delayed(const Duration(milliseconds: 500));
-        emit(NavigateToLogin());
+        emit(NavigateToOnboarding());
         return;
       }
 
@@ -73,20 +73,58 @@ class SplashBloc extends Bloc<SplashEvent, SplashState> {
       // Decode token to get user info
       final decodedToken = JwtDecoder.decode(accessToken);
       final userRole = decodedToken['role'] ?? '';
+      final userId = decodedToken['user_id']?.toString() ?? '';
+
+      log('User role: $userRole, User ID: $userId');
 
       emit(SplashLoading('Loading dashboard...'));
       await Future.delayed(const Duration(milliseconds: 500));
 
       // Navigate based on user role
+      // if (userRole.toLowerCase() == 'admin') {
+      //   emit(NavigateToAdminDashboard());
+      // } else {
+      //   emit(NavigateToEmployeeDashboard());
+      // }
       if (userRole.toLowerCase() == 'admin') {
-        emit(NavigateToAdminDashboard());
-      } else {
+        final organizationDetailsCompleted =
+            _sharedPref.getBool(
+              LocalStorageKeys.organizationDetailsCompleted,
+            ) ??
+            false;
+        if (!organizationDetailsCompleted) {
+          log(
+            'Admin details not completed, redirecting to organization details',
+          );
+          emit(SplashLoading('Setting up organization details...'));
+          await Future.delayed(const Duration(milliseconds: 500));
+          emit(NavigateToOrganizationDetails());
+        } else {
+          log(
+            'Admin logged in with completed details, redirecting to admin dashboard',
+          );
+          emit(SplashLoading('Loading admin dashboard...'));
+          await Future.delayed(const Duration(milliseconds: 500));
+          emit(NavigateToAdminDashboard());
+        }
+      } else if (userRole == 'employee') {
+        log('Employee logged in, redirecting to employee dashboard');
+        emit(SplashLoading('Loading employee dashboard...'));
+        await Future.delayed(const Duration(milliseconds: 500));
         emit(NavigateToEmployeeDashboard());
+      } else {
+        // Unknown role, clear data and redirect to onboarding
+        log('Unknown user role: $userRole, clearing data');
+        await _secureStorage.deleteAll();
+        await _sharedPref.clear();
+        emit(SplashLoading('Invalid user role, redirecting to onboarding...'));
+        await Future.delayed(const Duration(milliseconds: 500));
+        emit(NavigateToOnboarding());
       }
     } catch (e) {
       emit(SplashError('Authentication failed: ${e.toString()}'));
       await Future.delayed(const Duration(seconds: 2));
-      emit(NavigateToLogin());
+      emit(NavigateToOnboarding());
     }
   }
 
@@ -104,7 +142,7 @@ class SplashBloc extends Bloc<SplashEvent, SplashState> {
       if (refreshToken == null || refreshToken.isEmpty) {
         emit(SplashLoading('Session expired, please login...'));
         await Future.delayed(const Duration(seconds: 1));
-        emit(NavigateToLogin());
+        emit(NavigateToOnboarding());
         return;
       }
 
@@ -114,7 +152,7 @@ class SplashBloc extends Bloc<SplashEvent, SplashState> {
         await _sharedPref.clear();
         emit(SplashLoading('Session expired, please login...'));
         await Future.delayed(const Duration(seconds: 1));
-        emit(NavigateToLogin());
+        emit(NavigateToOnboarding());
         return;
       }
 
@@ -122,21 +160,41 @@ class SplashBloc extends Bloc<SplashEvent, SplashState> {
       // For now, simulate API call
       await Future.delayed(const Duration(seconds: 2));
 
+      final refreshTokenDecoded = JwtDecoder.decode(refreshToken);
+      final userRole =
+          refreshTokenDecoded['role']?.toString().toLowerCase() ?? 'employee';
+
       // Simulate successful token refresh
       // In real implementation, you would get new tokens from API response
-      final newAccessToken = _generateDummyToken('employee'); // or 'admin'
+      final newAccessToken = _generateDummyToken(userRole);
       await _secureStorage.writeData(LocalStorageKeys.token, newAccessToken);
 
       emit(SplashLoading('Authentication refreshed successfully...'));
       await Future.delayed(const Duration(milliseconds: 500));
 
       // Decode new token to get user role
-      final decodedToken = JwtDecoder.decode(newAccessToken);
-      final userRole = decodedToken['role'] ?? '';
+      // final decodedToken = JwtDecoder.decode(newAccessToken);
+      // final userRole = decodedToken['role'] ?? '';
 
       // Navigate based on user role
       if (userRole.toLowerCase() == 'admin') {
-        emit(NavigateToAdminDashboard());
+        final organizationDetailsCompleted =
+            _sharedPref.getBool(
+              LocalStorageKeys.organizationDetailsCompleted,
+            ) ??
+            false;
+
+        if (!organizationDetailsCompleted) {
+          log(
+            'Admin details not completed after refresh, redirecting to organization details',
+          );
+          emit(NavigateToOrganizationDetails());
+        } else {
+          log(
+            'Admin logged in with completed details after refresh, redirecting to admin dashboard',
+          );
+          emit(NavigateToAdminDashboard());
+        }
       } else {
         emit(NavigateToEmployeeDashboard());
       }
@@ -145,7 +203,7 @@ class SplashBloc extends Bloc<SplashEvent, SplashState> {
       await _secureStorage.deleteAll();
       await _sharedPref.clear();
       await Future.delayed(const Duration(seconds: 2));
-      emit(NavigateToLogin());
+      emit(NavigateToOnboarding());
     }
   }
 

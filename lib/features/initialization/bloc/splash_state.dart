@@ -7,9 +7,11 @@ class SplashLoading extends SplashState {
   SplashLoading(this.message);
 }
 
-class NavigateToLogin extends SplashState {}
+// class NavigateToLogin extends SplashState {}
 
 class NavigateToAdminDashboard extends SplashState {}
+
+class NavigateToOrganizationDetails extends SplashState {}
 
 class NavigateToEmployeeDashboard extends SplashState {}
 

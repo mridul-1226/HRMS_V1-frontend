@@ -81,8 +81,8 @@ class _SplashScreenState extends State<SplashScreen>
     return Scaffold(
       body: BlocListener<SplashBloc, SplashState>(
         listener: (context, state) {
-          if (state is NavigateToLogin) {
-            context.go('/login');
+          if (state is NavigateToOrganizationDetails) {
+            context.go('/organization-details');
           } else if (state is NavigateToAdminDashboard) {
             context.go('/admin-dashboard');
           } else if (state is NavigateToEmployeeDashboard) {

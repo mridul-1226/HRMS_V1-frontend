@@ -19,7 +19,7 @@ class AuthRepositoryImpl implements AuthRepository {
       final response = await _dio.post(endpoint, data: {'id_token': token});
 
       if (response.statusCode != 200) {
-        throw Exception('Failed to sign in with Google: ${response.data}');
+        throw Exception('1 Failed to sign in with Google: ${response.data}');
       }
 
       if (response.data['success'] != true) {
@@ -36,7 +36,7 @@ class AuthRepositoryImpl implements AuthRepository {
       );
       return response.data['data']['user'];
     } catch (e) {
-      throw Exception('Failed to sign in with Google: $e');
+      throw Exception('2 Failed to sign in with Google: $e');
     }
   }
 
@@ -80,7 +80,7 @@ class AuthRepositoryImpl implements AuthRepository {
       );
       return response.data['data']['user'];
     } catch (e) {
-      throw Exception('Failed to sign in with Google: $e');
+      throw Exception('3 Failed to sign in with Google: $e');
     }
   }
 
@@ -105,7 +105,7 @@ class AuthRepositoryImpl implements AuthRepository {
       );
 
       if (response.statusCode != 200) {
-        throw Exception('Failed to sign in with Google: ${response.data}');
+        throw Exception('4 Failed to sign in with Google: ${response.data}');
       }
 
       if (response.data['success'] != true) {
@@ -122,7 +122,7 @@ class AuthRepositoryImpl implements AuthRepository {
       );
       return response.data['data']['user'];
     } catch (e) {
-      throw Exception('Failed to sign in with Google: $e');
+      throw Exception('5 Failed to sign in with Google: $e');
     }
   }
 

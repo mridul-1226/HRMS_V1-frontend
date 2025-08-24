@@ -20,6 +20,7 @@ void main() async {
 
   await setupLocator();
   await dotenv.load(fileName: ".env");
+  debugPrint("Environment variables loadedbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjj");
 
   runApp(DependencyInjector(child: MyApp()));
 }
