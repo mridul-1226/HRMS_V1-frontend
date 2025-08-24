@@ -34,7 +34,13 @@ class AuthRepositoryImpl implements AuthRepository {
         LocalStorageKeys.refreshToken,
         response.data['data']['refresh_token'],
       );
-      return response.data['data']['user'];
+      // Return all relevant data
+      return {
+        'user': response.data['data']['user'],
+        'company': response.data['data']['company'],
+        'role': response.data['data']['role'],
+        'type': response.data['data']['user']['type'],
+      };
     } catch (e) {
       throw Exception('2 Failed to sign in with Google: $e');
     }
@@ -46,28 +52,18 @@ class AuthRepositoryImpl implements AuthRepository {
     String password,
   ) async {
     final securedStorage = getIt<SecureStorageService>();
-    final endpoint = '${dotenv.env['BASE_URL']}${AuthRoutes.loginWithEmailPassword}';
+    final endpoint =
+        '${dotenv.env['BASE_URL']}${AuthRoutes.loginWithEmailPassword}';
     try {
-      final response = await _dio.post(endpoint, data: {
-        'email': email,
-        'password': password,
-      });
-
-      if (response.statusCode != 200) {
-        throw Exception('Failed to login: ${response.data}');
-      }
-
-      if (response.data['success'] != true) {
-        throw Exception(response.data['error'] ?? 'Unknown error occurred');
-      }
-
-      await securedStorage.writeData(
-        LocalStorageKeys.token,
-        response.data['data']['access_token'],
+      final response = await _dio.post(
+        endpoint,
+        data: {'email': email, 'password': password},
       );
 
-      if (response.data['success'] != true) {
-        throw Exception(response.data['error'] ?? 'Unknown error occurred');
+      if (response.statusCode != 200 || response.data['success'] != true) {
+        throw Exception(
+          response.data['error'] ?? 'Failed to login: ${response.data}',
+        );
       }
 
       await securedStorage.writeData(
@@ -78,7 +74,11 @@ class AuthRepositoryImpl implements AuthRepository {
         LocalStorageKeys.refreshToken,
         response.data['data']['refresh_token'],
       );
-      return response.data['data']['user'];
+      return {
+        'user': response.data['data']['user'],
+        'company': response.data['data']['company'],
+        'role': response.data['data']['role'],
+      };
     } catch (e) {
       throw Exception('3 Failed to sign in with Google: $e');
     }
@@ -104,12 +104,10 @@ class AuthRepositoryImpl implements AuthRepository {
         },
       );
 
-      if (response.statusCode != 200) {
-        throw Exception('4 Failed to sign in with Google: ${response.data}');
-      }
-
-      if (response.data['success'] != true) {
-        throw Exception(response.data['error'] ?? 'Unknown error occurred');
+      if (response.statusCode != 200 || response.data['success'] != true) {
+        throw Exception(
+          response.data['error'] ?? 'Failed to register: ${response.data}',
+        );
       }
 
       await securedStorage.writeData(
@@ -117,12 +115,17 @@ class AuthRepositoryImpl implements AuthRepository {
         response.data['data']['access_token'],
       );
       await securedStorage.writeData(
-        LocalStorageKeys.token,
+        LocalStorageKeys.refreshToken,
         response.data['data']['refresh_token'],
       );
-      return response.data['data']['user'];
+      return {
+        'user': response.data['data']['user'],
+        'company': response.data['data']['company'],
+        'role': response.data['data']['role'],
+        'type': response.data['data']['user']['type'],
+      };
     } catch (e) {
-      throw Exception('5 Failed to sign in with Google: $e');
+      throw Exception('Failed to register: $e');
     }
   }
 

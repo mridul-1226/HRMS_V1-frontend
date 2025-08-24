@@ -5,8 +5,6 @@ class Company extends Equatable {
   final String ownerName;
   final String companyName;
   final String email;
-  final String username;
-  final String? profilePicture;
   final String? industry;
   final String? size;
   final String? address;
@@ -21,8 +19,6 @@ class Company extends Equatable {
     required this.ownerName,
     required this.companyName,
     required this.email,
-    required this.username,
-    this.profilePicture,
     this.industry,
     this.size,
     this.address,
@@ -39,8 +35,6 @@ class Company extends Equatable {
     ownerName,
     companyName,
     email,
-    username,
-    profilePicture,
     industry,
     size,
     address,

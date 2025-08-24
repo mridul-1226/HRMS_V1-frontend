@@ -1,49 +1,43 @@
 import 'dart:developer';
 
-import 'package:dio/dio.dart';
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:hrms/core/config/local_storage_keys.dart';
 import 'package:hrms/core/di/get_it.dart';
-import 'package:hrms/core/routes/auth_routes.dart';
-import 'package:hrms/core/services/secure_storage_service.dart';
+import 'package:hrms/core/services/shared_pref_service.dart';
+import 'package:hrms/features/auth/data/models/company_model.dart';
 import 'package:hrms/features/auth/domain/entities/company.dart';
+import 'package:hrms/features/auth/domain/repositories/company_repository.dart';
+import 'package:hrms/features/auth/domain/use_cases/store_company_details_usecase.dart';
 
 part 'org_detail_event.dart';
 part 'org_detail_state.dart';
 
 class OrgDetailBloc extends Bloc<OrgDetailEvent, OrgDetailState> {
+  final StoreCompanyDetailsUseCase storeCompanyDetailsUseCase =
+      StoreCompanyDetailsUseCase(getIt<CompanyRepository>());
+
   OrgDetailBloc() : super(OrgDetailInitial()) {
     on<OrgDetailStoreEvent>((event, emit) async {
       emit(OrgDetailStoring());
       try {
-        final securedStorage = getIt<SecureStorageService>();
-        final endpoint =
-            '${dotenv.env['BASE_URL']}${AuthRoutes.companyDetails}';
-        final token = await securedStorage.readData(LocalStorageKeys.token);
-        final res = await Dio().post(
-          endpoint,
-          data: {
-            'ownerName': event.company.companyName,
-            'email': event.company.email,
-            'industry': event.company.industry,
-            'size': event.company.size,
-            'address': event.company.address,
-            'countryCode': event.company.countryCode,
-            'phone': event.company.phone,
-          },
-          options: Options(headers: {'Authorization': 'Bearer $token'}),
-        );
-        if(res.statusCode != 200) {
-          throw Exception('Failed to store organization details: ${res.data}');
-        }
+        final res = await storeCompanyDetailsUseCase(event.company);
+        final company = CompanyModel.fromJson(res['company_detail']);
+        final prefs = getIt<SharedPrefService>();
 
-        if(res.data['success'] != true) {
-          throw Exception(res.data['error'] ?? 'Unknown error occurred');
-        }
+        log(company.toJson().toString());
 
-        log(res.data.toString());
+        await prefs.setString(LocalStorageKeys.companyName, company.companyName);
+        await prefs.setString(LocalStorageKeys.companyId, company.companyId);
+        await prefs.setString(LocalStorageKeys.companyLogo, company.logo ?? '');
+        await prefs.setString(LocalStorageKeys.companyIndustry, company.industry ?? '');
+        await prefs.setString(LocalStorageKeys.companySize, company.size ?? '');
+        await prefs.setString(LocalStorageKeys.companyAddress, company.address ?? '');
+        await prefs.setString(LocalStorageKeys.companyPhone, company.phone ?? '');
+        await prefs.setString(LocalStorageKeys.companyTaxId, company.taxId ?? '');
+        await prefs.setString(LocalStorageKeys.companyWebsite, company.website ?? '');
+        await prefs.setString(LocalStorageKeys.countryCode, company.countryCode ?? '+91');
+        await prefs.setString(LocalStorageKeys.phone, company.phone ?? '');
         emit(OrgDetailStored('Organization details stored successfully.'));
       } catch (e) {
         emit(OrgDetailError('Failed to store organization details.'));

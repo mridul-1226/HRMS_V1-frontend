@@ -7,6 +7,7 @@ import 'package:hrms/core/services/shared_pref_service.dart';
 import 'package:hrms/core/utils/toast.dart';
 import 'package:hrms/features/auth/domain/entities/company.dart';
 import 'package:hrms/features/auth/presentation/blocs/org_detail_bloc/org_detail_bloc.dart';
+import 'package:fl_country_code_picker/fl_country_code_picker.dart';
 
 class OrganizationDetailsScreen extends StatefulWidget {
   const OrganizationDetailsScreen({super.key});
@@ -30,6 +31,10 @@ class _OrganizationDetailsScreenState extends State<OrganizationDetailsScreen> {
   String? _selectedCompanySize;
   bool _isLoading = false;
 
+  // Country code picker
+  final FlCountryCodePicker _countryPicker = const FlCountryCodePicker();
+  CountryCode? _selectedCountryCode;
+
   final List<String> _industries = [
     'Information Technology',
     'Manufacturing',
@@ -49,6 +54,60 @@ class _OrganizationDetailsScreenState extends State<OrganizationDetailsScreen> {
   ];
 
   @override
+  void initState() {
+    super.initState();
+    // Prefill fields from shared prefs, use empty string if null
+    _companyNameController.text =
+        prefs.getString(LocalStorageKeys.companyName)?.trim().isNotEmpty == true
+            ? prefs.getString(LocalStorageKeys.companyName)!
+            : '';
+    _companyEmailController.text =
+        prefs.getString(LocalStorageKeys.email)?.trim().isNotEmpty == true
+            ? prefs.getString(LocalStorageKeys.email)!
+            : '';
+    _addressController.text =
+        prefs.getString(LocalStorageKeys.companyAddress)?.trim().isNotEmpty ==
+                true
+            ? prefs.getString(LocalStorageKeys.companyAddress)!
+            : '';
+    _phoneController.text =
+        prefs.getString(LocalStorageKeys.companyPhone)?.trim().isNotEmpty ==
+                true
+            ? prefs.getString(LocalStorageKeys.companyPhone)!
+            : '';
+    _websiteController.text =
+        prefs.getString(LocalStorageKeys.companyWebsite)?.trim().isNotEmpty ==
+                true
+            ? prefs.getString(LocalStorageKeys.companyWebsite)!
+            : '';
+    _taxIdController.text =
+        prefs.getString(LocalStorageKeys.companyTaxId)?.trim().isNotEmpty ==
+                true
+            ? prefs.getString(LocalStorageKeys.companyTaxId)!
+            : '';
+
+    // Dropdowns: if value is null/empty, keep null so hint shows
+    final industry = prefs.getString(LocalStorageKeys.companyIndustry);
+    _selectedIndustry =
+        (industry != null && industry.trim().isNotEmpty) ? industry : null;
+    final size = prefs.getString(LocalStorageKeys.companySize);
+    _selectedCompanySize =
+        (size != null && size.trim().isNotEmpty) ? size : null;
+
+    // Country code: if null/empty, default to +91
+    final savedCode = prefs.getString(LocalStorageKeys.countryCode);
+    _selectedCountryCode =
+        (savedCode != null && savedCode.trim().isNotEmpty)
+            ? CountryCode.fromDialCode(savedCode)
+            : CountryCode.fromDialCode('+91');
+    _selectedCountryCode ??= const CountryCode(
+      name: 'India',
+      code: 'IN',
+      dialCode: '+91',
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
@@ -62,7 +121,6 @@ class _OrganizationDetailsScreenState extends State<OrganizationDetailsScreen> {
           } else {
             setState(() => _isLoading = false);
             if (state is OrgDetailStored) {
-              prefs.setBool(LocalStorageKeys.onboardingCompleted, true);
               context.goNamed('admin-dashboard');
             } else if (state is OrgDetailError) {
               Toast.show(message: state.message, isError: true);
@@ -137,6 +195,7 @@ class _OrganizationDetailsScreenState extends State<OrganizationDetailsScreen> {
                     labelText: 'Industry Type *',
                     border: OutlineInputBorder(),
                   ),
+                  hint: const Text('Select Industry'),
                   items:
                       _industries.map((industry) {
                         return DropdownMenuItem(
@@ -148,7 +207,9 @@ class _OrganizationDetailsScreenState extends State<OrganizationDetailsScreen> {
                     setState(() => _selectedIndustry = value);
                   },
                   validator: (value) {
-                    if (value == null) return 'Please select an industry';
+                    if (value == null || value.isEmpty) {
+                      return 'Please select an industry';
+                    }
                     return null;
                   },
                 ),
@@ -160,6 +221,7 @@ class _OrganizationDetailsScreenState extends State<OrganizationDetailsScreen> {
                     labelText: 'Company Size *',
                     border: OutlineInputBorder(),
                   ),
+                  hint: const Text('Select Company Size'),
                   items:
                       _companySizes.map((size) {
                         return DropdownMenuItem(value: size, child: Text(size));
@@ -168,7 +230,58 @@ class _OrganizationDetailsScreenState extends State<OrganizationDetailsScreen> {
                     setState(() => _selectedCompanySize = value);
                   },
                   validator: (value) {
-                    if (value == null) return 'Please select company size';
+                    if (value == null || value.isEmpty) {
+                      return 'Please select company size';
+                    }
+                    return null;
+                  },
+                ),
+                SizedBox(height: 16),
+
+                // Phone with country code picker
+                TextFormField(
+                  controller: _phoneController,
+                  decoration: InputDecoration(
+                    labelText: 'Phone Number *',
+                    border: OutlineInputBorder(),
+                    prefixIcon: InkWell(
+                      onTap: () async {
+                        final code = await _countryPicker.showPicker(
+                          context: context,
+                        );
+                        if (code != null) {
+                          setState(() {
+                            _selectedCountryCode = code;
+                          });
+                          await prefs.setString(
+                            LocalStorageKeys.countryCode,
+                            code.dialCode,
+                          );
+                        }
+                      },
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            _selectedCountryCode?.flagImage() ??
+                                const SizedBox(),
+                            SizedBox(width: 4),
+                            Text(
+                              _selectedCountryCode?.dialCode ?? '+91',
+                              style: TextStyle(fontSize: 16),
+                            ),
+                            Icon(Icons.arrow_drop_down),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                  keyboardType: TextInputType.phone,
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return 'Phone number is required';
+                    }
                     return null;
                   },
                 ),
@@ -191,16 +304,6 @@ class _OrganizationDetailsScreenState extends State<OrganizationDetailsScreen> {
                     border: OutlineInputBorder(),
                   ),
                   maxLines: 3,
-                ),
-                SizedBox(height: 16),
-
-                TextFormField(
-                  controller: _phoneController,
-                  decoration: InputDecoration(
-                    labelText: 'Phone Number',
-                    border: OutlineInputBorder(),
-                  ),
-                  keyboardType: TextInputType.phone,
                 ),
                 SizedBox(height: 16),
 
@@ -247,24 +350,22 @@ class _OrganizationDetailsScreenState extends State<OrganizationDetailsScreen> {
   void _saveDetails() async {
     if (_formKey.currentState?.validate() ?? false) {
       setState(() => _isLoading = true);
-      context.read<OrgDetailBloc>().add(
-        OrgDetailStoreEvent(
-          Company(
-            companyId: prefs.getString(LocalStorageKeys.companyId) ?? '',
-            ownerName: prefs.getString(LocalStorageKeys.name) ?? '',
-            username: prefs.getString(LocalStorageKeys.userId) ?? '',
-            companyName: _companyNameController.text.trim(),
-            email: _companyEmailController.text.trim(),
-            industry: _selectedIndustry!,
-            size: _selectedCompanySize!,
-            address: _addressController.text.trim(),
-            phone: _phoneController.text.trim(),
-            website: _websiteController.text.trim(),
-            taxId: _taxIdController.text.trim(),
-            countryCode: '',
-          ),
-        ),
+
+      final company = Company(
+        companyId: prefs.getString(LocalStorageKeys.companyId) ?? '',
+        ownerName: prefs.getString(LocalStorageKeys.name) ?? '',
+        companyName: _companyNameController.text.trim(),
+        email: _companyEmailController.text.trim(),
+        industry: _selectedIndustry!,
+        size: _selectedCompanySize!,
+        address: _addressController.text.trim(),
+        countryCode: _selectedCountryCode?.dialCode ?? '+91',
+        phone: _phoneController.text.trim(),
+        website: _websiteController.text.trim(),
+        taxId: _taxIdController.text.trim(),
       );
+
+      context.read<OrgDetailBloc>().add(OrgDetailStoreEvent(company));
     }
   }
 

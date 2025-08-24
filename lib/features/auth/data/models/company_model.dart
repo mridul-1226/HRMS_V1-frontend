@@ -6,8 +6,7 @@ class CompanyModel extends Company {
     required super.ownerName,
     required super.companyName,
     required super.email,
-    required super.username,
-    super.profilePicture,
+    super.countryCode,
     super.industry,
     super.size,
     super.address,
@@ -17,35 +16,32 @@ class CompanyModel extends Company {
     super.website,
   });
 
-  factory CompanyModel.fromJson(Map<String, dynamic> json) {
+  factory CompanyModel.fromJson(Map<String, dynamic> companyJson) {
     return CompanyModel(
-      companyId: json['company_id']?.toString() ?? '',
-      ownerName: json['name']?.toString() ?? '',
-      companyName: json['company_name']?.toString() ?? '',
-      email: json['email']?.toString() ?? '',
-      username: json['username']?.toString() ?? '',
-      profilePicture: json['profile_picture']?.toString(),
-      industry: json['industry']?.toString(),
-      size: json['size']?.toString(),
-      address: json['address']?.toString(),
-      phone: json['phone']?.toString(),
-      logo: json['logo']?.toString(),
-      taxId: json['tax_id']?.toString(),
-      website: json['website']?.toString(),
+      companyId: companyJson['id']?.toString() ?? '',
+      ownerName: companyJson['ownerName']?.toString() ?? '',
+      companyName: companyJson['name']?.toString() ?? '',
+      email: companyJson['email']?.toString() ?? '',
+      industry: companyJson['industry']?.toString(),
+      size: companyJson['size']?.toString(),
+      address: companyJson['address']?.toString(),
+      countryCode: companyJson['countryCode']?.toString() ?? '',
+      phone: companyJson['phone']?.toString(),
+      logo: companyJson['logo']?.toString(),
+      taxId: companyJson['tax_id']?.toString(),
+      website: companyJson['website']?.toString(),
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
-      'company_id': companyId,
-      'name': ownerName,
-      'company_name': companyName,
+      'ownerName': ownerName,
+      'name': companyName,
       'email': email,
-      'username': username,
-      'profile_picture': profilePicture,
       'industry': industry,
       'size': size,
       'address': address,
+      'countryCode': countryCode,
       'phone': phone,
       'logo': logo,
       'tax_id': taxId,

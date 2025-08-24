@@ -28,17 +28,6 @@ class SplashBloc extends Bloc<SplashEvent, SplashState> {
       // Simulate minimum splash duration for better UX
       await Future.delayed(const Duration(seconds: 2));
 
-      // Check if onboarding is completed
-      final onboardingCompleted =
-          _sharedPref.getBool(LocalStorageKeys.onboardingCompleted) ?? false;
-
-      if (!onboardingCompleted) {
-        emit(SplashLoading('Preparing onboarding...'));
-        await Future.delayed(const Duration(milliseconds: 500));
-        emit(NavigateToOnboarding());
-        return;
-      }
-
       // Get access token from secure storage
       final accessToken = await _secureStorage.readData(LocalStorageKeys.token);
       log(accessToken.toString());
@@ -80,12 +69,6 @@ class SplashBloc extends Bloc<SplashEvent, SplashState> {
       emit(SplashLoading('Loading dashboard...'));
       await Future.delayed(const Duration(milliseconds: 500));
 
-      // Navigate based on user role
-      // if (userRole.toLowerCase() == 'admin') {
-      //   emit(NavigateToAdminDashboard());
-      // } else {
-      //   emit(NavigateToEmployeeDashboard());
-      // }
       if (userRole.toLowerCase() == 'admin') {
         final organizationDetailsCompleted =
             _sharedPref.getBool(

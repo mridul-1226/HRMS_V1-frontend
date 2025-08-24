@@ -1,5 +1,3 @@
-import 'dart:developer';
-
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:hrms/core/config/local_storage_keys.dart';
@@ -25,34 +23,75 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
           emit(AuthError(message: 'Google sign-in failed'));
           return;
         }
-        final userJson = await GoogleSignInUseCase(
+        final result = await GoogleSignInUseCase(
           getIt<AuthRepository>(),
         ).call(token);
-        final companyUser = CompanyModel.fromJson(userJson);
+
+        final userJson = result['user'] as Map<String, dynamic>;
+        final companyJson = result['company'] as Map<String, dynamic>;
+        final userRole = result['role']?.toString() ?? '';
+
+        final companyUser = CompanyModel.fromJson({'company': companyJson});
         final prefs = getIt<SharedPrefService>();
+
+        // User details
         await prefs.setBool(LocalStorageKeys.isLoggedIn, true);
-        await prefs.setString(LocalStorageKeys.email, companyUser.email);
-        await prefs.setString(LocalStorageKeys.name, companyUser.ownerName);
-        await prefs.setString(LocalStorageKeys.username, companyUser.username);
-        await prefs.setString(
-          LocalStorageKeys.profilePicture,
-          companyUser.profilePicture ?? '',
-        );
-        await prefs.setString(
-          LocalStorageKeys.companyLogo,
-          companyUser.logo ?? '',
-        );
+        await prefs.setString(LocalStorageKeys.email, userJson['email'] ?? '');
+        await prefs.setString(LocalStorageKeys.name, userJson['name'] ?? '');
         await prefs.setString(
           LocalStorageKeys.userId,
           userJson['id'].toString(),
+        );
+        await prefs.setString(LocalStorageKeys.userRole, userRole);
+        await prefs.setString(
+          LocalStorageKeys.profilePicture,
+          userJson['profile_picture'] ?? '',
+        );
+        await prefs.setString(
+          LocalStorageKeys.username,
+          userJson['username'] ?? '',
+        );
+
+        // Company details
+        await prefs.setString(
+          LocalStorageKeys.companyName,
+          companyUser.companyName,
         );
         await prefs.setString(
           LocalStorageKeys.companyId,
           companyUser.companyId,
         );
         await prefs.setString(
-          LocalStorageKeys.companyName,
-          companyUser.companyName,
+          LocalStorageKeys.companyEmail,
+          companyUser.email,
+        );
+        await prefs.setString(
+          LocalStorageKeys.companyLogo,
+          companyUser.logo ?? '',
+        );
+        await prefs.setString(
+          LocalStorageKeys.companyIndustry,
+          companyUser.industry ?? '',
+        );
+        await prefs.setString(
+          LocalStorageKeys.companySize,
+          companyUser.size ?? '',
+        );
+        await prefs.setString(
+          LocalStorageKeys.companyAddress,
+          companyUser.address ?? '',
+        );
+        await prefs.setString(
+          LocalStorageKeys.companyPhone,
+          companyUser.phone ?? '',
+        );
+        await prefs.setString(
+          LocalStorageKeys.companyTaxId,
+          companyUser.taxId ?? '',
+        );
+        await prefs.setString(
+          LocalStorageKeys.companyWebsite,
+          companyUser.website ?? '',
         );
 
         emit(Authenticated(userId: userJson['id'].toString()));
@@ -66,15 +105,72 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     on<LoginWithEmailPasswordRequested>((event, emit) async {
       emit(AuthLoading());
       try {
-        log('message');
-        final userJson = await LoginWithEmailAndPasswordUseCase(
+        final result = await LoginWithEmailAndPasswordUseCase(
           getIt<AuthRepository>(),
         ).call(event.email, event.password);
-        log('message2');
-        final companyUser = CompanyModel.fromJson(userJson);
+
+        final userJson = result['user'] as Map<String, dynamic>;
+        final companyJson = result['company'] as Map<String, dynamic>;
+        final userRole = result['role']?.toString() ?? '';
+
+        final companyUser = CompanyModel.fromJson(companyJson);
         final prefs = getIt<SharedPrefService>();
-        await prefs.setString(LocalStorageKeys.email, companyUser.email);
-        await prefs.setString(LocalStorageKeys.name, companyUser.ownerName);
+
+        // User details
+        await prefs.setBool(LocalStorageKeys.isLoggedIn, true);
+        await prefs.setString(LocalStorageKeys.email, userJson['email'] ?? '');
+        await prefs.setString(LocalStorageKeys.name, userJson['name'] ?? '');
+        await prefs.setString(
+          LocalStorageKeys.userId,
+          userJson['id'].toString(),
+        );
+        await prefs.setString(LocalStorageKeys.userRole, userRole);
+        await prefs.setString(
+          LocalStorageKeys.profilePicture,
+          userJson['profile_picture'] ?? '',
+        );
+        await prefs.setString(
+          LocalStorageKeys.username,
+          userJson['username'] ?? '',
+        );
+
+        // Company details
+        await prefs.setString(
+          LocalStorageKeys.companyName,
+          companyUser.companyName,
+        );
+        await prefs.setString(
+          LocalStorageKeys.companyId,
+          companyUser.companyId,
+        );
+        await prefs.setString(
+          LocalStorageKeys.companyLogo,
+          companyUser.logo ?? '',
+        );
+        await prefs.setString(
+          LocalStorageKeys.companyIndustry,
+          companyUser.industry ?? '',
+        );
+        await prefs.setString(
+          LocalStorageKeys.companySize,
+          companyUser.size ?? '',
+        );
+        await prefs.setString(
+          LocalStorageKeys.companyAddress,
+          companyUser.address ?? '',
+        );
+        await prefs.setString(
+          LocalStorageKeys.companyPhone,
+          companyUser.phone ?? '',
+        );
+        await prefs.setString(
+          LocalStorageKeys.companyTaxId,
+          companyUser.taxId ?? '',
+        );
+        await prefs.setString(
+          LocalStorageKeys.companyWebsite,
+          companyUser.website ?? '',
+        );
 
         emit(Authenticated(userId: userJson['id'].toString()));
       } catch (e) {
@@ -87,18 +183,83 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     on<RegisterWithEmailPasswordRequested>((event, emit) async {
       emit(AuthLoading());
       try {
-        final userJson = await CreateAccountUseCase(
-          getIt<AuthRepository>(),
-        ).call(
+        final result = await CreateAccountUseCase(getIt<AuthRepository>()).call(
           email: event.email,
           password: event.password,
           confirmPassword: event.confirmPassword,
           name: event.fullName,
         );
-        final companyUser = CompanyModel.fromJson(userJson);
+
+        final userJson = result['user'] as Map<String, dynamic>;
+        final companyJson = result['company'] as Map<String, dynamic>;
+        final userRole = result['role']?.toString() ?? '';
+
+        final companyUser = CompanyModel.fromJson({'company': companyJson});
         final prefs = getIt<SharedPrefService>();
-        await prefs.setString(LocalStorageKeys.email, companyUser.email);
-        await prefs.setString(LocalStorageKeys.name, companyUser.ownerName);
+
+        // User details
+        await prefs.setBool(LocalStorageKeys.isLoggedIn, true);
+        await prefs.setString(LocalStorageKeys.email, userJson['email'] ?? '');
+        await prefs.setString(LocalStorageKeys.name, userJson['name'] ?? '');
+        await prefs.setString(
+          LocalStorageKeys.userId,
+          userJson['id'].toString(),
+        );
+        await prefs.setString(LocalStorageKeys.userRole, userRole);
+        await prefs.setString(
+          LocalStorageKeys.profilePicture,
+          userJson['profile_picture'] ?? '',
+        );
+        await prefs.setString(
+          LocalStorageKeys.username,
+          userJson['username'] ?? '',
+        );
+
+        // Company details
+        await prefs.setString(
+          LocalStorageKeys.companyName,
+          companyUser.companyName,
+        );
+        await prefs.setString(
+          LocalStorageKeys.companyId,
+          companyUser.companyId,
+        );
+        await prefs.setString(
+          LocalStorageKeys.countryCode,
+          companyUser.countryCode ?? '+91',
+        );
+        await prefs.setString(
+          LocalStorageKeys.phone,
+          companyUser.phone ?? '',
+        );
+        await prefs.setString(
+          LocalStorageKeys.companyLogo,
+          companyUser.logo ?? '',
+        );
+        await prefs.setString(
+          LocalStorageKeys.companyIndustry,
+          companyUser.industry ?? '',
+        );
+        await prefs.setString(
+          LocalStorageKeys.companySize,
+          companyUser.size ?? '',
+        );
+        await prefs.setString(
+          LocalStorageKeys.companyAddress,
+          companyUser.address ?? '',
+        );
+        await prefs.setString(
+          LocalStorageKeys.companyPhone,
+          companyUser.phone ?? '',
+        );
+        await prefs.setString(
+          LocalStorageKeys.companyTaxId,
+          companyUser.taxId ?? '',
+        );
+        await prefs.setString(
+          LocalStorageKeys.companyWebsite,
+          companyUser.website ?? '',
+        );
 
         emit(Authenticated(userId: userJson['id'].toString()));
       } catch (e) {

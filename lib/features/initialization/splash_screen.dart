@@ -87,7 +87,7 @@ class _SplashScreenState extends State<SplashScreen>
             context.go('/admin-dashboard');
           } else if (state is NavigateToEmployeeDashboard) {
             context.go('/employee-dashboard');
-          } else if (state is NavigateToOnboarding) {
+          } else if(state is! SplashLoading){
             context.go('/welcome');
           }
         },
