@@ -15,6 +15,5 @@ abstract class AuthRepository {
     String email,
     String otp,
     String newPassword,
-    String userId,
   );
 }

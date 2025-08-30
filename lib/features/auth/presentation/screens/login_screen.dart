@@ -150,7 +150,9 @@ class _LoginScreenState extends State<LoginScreen> {
 
                     Center(
                       child: TextButton(
-                        onPressed: () {},
+                        onPressed: () {
+                          context.pushNamed('forgot-password');
+                        },
                         child: Text('Forgot Password?'),
                       ),
                     ),

@@ -40,3 +40,29 @@ class RegisterWithEmailPasswordRequested extends AuthEvent {
   @override
   List<Object> get props => [email, password, confirmPassword, fullName];
 }
+
+class SendPasswordResetOTPRequested extends AuthEvent {
+  final String email;
+
+  const SendPasswordResetOTPRequested({
+    required this.email
+  });
+
+  @override
+  List<Object> get props => [email];
+}
+
+class ResetPasswordWithOTPRequested extends AuthEvent {
+  final String email;
+  final String otp;
+  final String newPassword;
+
+  const ResetPasswordWithOTPRequested({
+    required this.email,
+    required this.otp,
+    required this.newPassword,
+  });
+
+  @override
+  List<Object> get props => [email, otp, newPassword];
+}

@@ -9,6 +9,8 @@ import 'package:hrms/features/auth/domain/repositories/auth_repo.dart';
 import 'package:hrms/features/auth/domain/use_cases/create_account_use_case.dart';
 import 'package:hrms/features/auth/domain/use_cases/google_sign_in_use_case.dart';
 import 'package:hrms/features/auth/domain/use_cases/login_use_case.dart';
+import 'package:hrms/features/auth/domain/use_cases/reset_password_with_otp_use_case.dart';
+import 'package:hrms/features/auth/domain/use_cases/send_password_reset_otp_use_case.dart';
 
 part 'auth_event.dart';
 part 'auth_state.dart';
@@ -61,10 +63,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
           LocalStorageKeys.companyId,
           companyUser.companyId,
         );
-        await prefs.setString(
-          LocalStorageKeys.companyEmail,
-          companyUser.email,
-        );
+        await prefs.setString(LocalStorageKeys.companyEmail, companyUser.email);
         await prefs.setString(
           LocalStorageKeys.companyLogo,
           companyUser.logo ?? '',
@@ -228,10 +227,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
           LocalStorageKeys.countryCode,
           companyUser.countryCode ?? '+91',
         );
-        await prefs.setString(
-          LocalStorageKeys.phone,
-          companyUser.phone ?? '',
-        );
+        await prefs.setString(LocalStorageKeys.phone, companyUser.phone ?? '');
         await prefs.setString(
           LocalStorageKeys.companyLogo,
           companyUser.logo ?? '',
@@ -262,6 +258,44 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         );
 
         emit(Authenticated(userId: userJson['id'].toString()));
+      } catch (e) {
+        emit(
+          AuthError(message: e.toString().replaceAll('Exception:', '').trim()),
+        );
+      }
+    });
+
+    on<SendPasswordResetOTPRequested>((event, emit) async {
+      emit(SendingPasswordResetOTP());
+      try {
+        final result = await SendPasswordResetOTPUseCase(
+          getIt<AuthRepository>(),
+        ).call(event.email);
+        emit(
+          PasswordResetOTPSent(
+            message: result['message'] ?? 'OTP sent successfully to your email',
+          ),
+        );
+      } catch (e) {
+        emit(
+          AuthError(message: e.toString().replaceAll('Exception:', '').trim()),
+        );
+      }
+    });
+
+    on<ResetPasswordWithOTPRequested>((event, emit) async {
+      emit(ResettingPassword());
+      try {
+        final result = await ResetPasswordWithOTPUseCase(
+          getIt<AuthRepository>(),
+        ).call(event.email, event.otp, event.newPassword);
+        emit(
+          PasswordResetSuccess(
+            message:
+                result['message'] ??
+                'Password reset successfully! Please login with your new password.',
+          ),
+        );
       } catch (e) {
         emit(
           AuthError(message: e.toString().replaceAll('Exception:', '').trim()),

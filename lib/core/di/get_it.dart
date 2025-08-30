@@ -17,7 +17,16 @@ Future<void> setupLocator() async {
   getIt.registerLazySingleton<SharedPrefService>(() => SharedPrefService());
   await SharedPrefService.init();
 
-  getIt.registerLazySingleton<Dio>(() => Dio());
+  final dio = Dio(
+    BaseOptions(
+      connectTimeout: Duration(seconds: 30),
+      receiveTimeout: Duration(seconds: 30),
+      validateStatus: (status) {
+        return status != null && status < 500;
+      },
+    ),
+  );
+  getIt.registerLazySingleton<Dio>(() => dio);
 
   getIt.registerLazySingleton<AuthRepository>(
     () => AuthRepositoryImpl(getIt<Dio>()),

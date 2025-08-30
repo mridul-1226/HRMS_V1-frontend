@@ -1,3 +1,5 @@
+import 'dart:developer';
+
 import 'package:dio/dio.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:hrms/core/config/local_storage_keys.dart';
@@ -19,7 +21,7 @@ class AuthRepositoryImpl implements AuthRepository {
       final response = await _dio.post(endpoint, data: {'id_token': token});
 
       if (response.statusCode != 200) {
-        throw Exception('1 Failed to sign in with Google: ${response.data}');
+        throw Exception('Failed to sign in with Google: ${response.data}');
       }
 
       if (response.data['success'] != true) {
@@ -35,14 +37,9 @@ class AuthRepositoryImpl implements AuthRepository {
         response.data['data']['refresh_token'],
       );
       // Return all relevant data
-      return {
-        'user': response.data['data']['user'],
-        'company': response.data['data']['company'],
-        'role': response.data['data']['role'],
-        'type': response.data['data']['user']['type'],
-      };
+      return response.data['data'];
     } catch (e) {
-      throw Exception('2 Failed to sign in with Google: $e');
+      throw Exception('Failed to sign in with Google: $e');
     }
   }
 
@@ -74,13 +71,10 @@ class AuthRepositoryImpl implements AuthRepository {
         LocalStorageKeys.refreshToken,
         response.data['data']['refresh_token'],
       );
-      return {
-        'user': response.data['data']['user'],
-        'company': response.data['data']['company'],
-        'role': response.data['data']['role'],
-      };
+      return response.data['data'];
     } catch (e) {
-      throw Exception('3 Failed to sign in with Google: $e');
+      log(e.toString());
+      throw Exception('Failed to login: $e');
     }
   }
 
@@ -130,9 +124,28 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
-  Future<Map<String, dynamic>> sendPasswordResetOTP(String email) async {
-    // TODO: Implement send password reset OTP logic
-    throw UnimplementedError();
+  Future<Map<String, dynamic>> sendPasswordResetOTP(
+    String email
+  ) async {
+    final endpoint =
+        '${dotenv.env['BASE_URL']}${AuthRoutes.sendPasswordResetOTP}';
+    try {
+      final response = await _dio.post(
+        endpoint,
+        data: {'email': email},
+      );
+
+      if (response.statusCode != 200 || response.data['success'] != true) {
+        throw Exception(
+          response.data['error'] ?? 'Failed to send OTP: ${response.data}',
+        );
+      }
+
+      return response.data['data'];
+    } catch (e) {
+      log('Send OTP Error: $e');
+      throw Exception('Failed to send OTP: $e');
+    }
   }
 
   @override
@@ -140,9 +153,26 @@ class AuthRepositoryImpl implements AuthRepository {
     String email,
     String otp,
     String newPassword,
-    String userId,
   ) async {
-    // TODO: Implement reset password with OTP logic
-    throw UnimplementedError();
+    final endpoint =
+        '${dotenv.env['BASE_URL']}${AuthRoutes.resetPasswordWithOTP}';
+    try {
+      final response = await _dio.post(
+        endpoint,
+        data: {'email': email, 'otp': otp, 'new_password': newPassword},
+      );
+
+      if (response.statusCode != 200 || response.data['success'] != true) {
+        throw Exception(
+          response.data['error'] ??
+              'Failed to reset password: ${response.data}',
+        );
+      }
+
+      return response.data['data'];
+    } catch (e) {
+      log('Reset Password Error: $e');
+      throw Exception('Failed to reset password: $e');
+    }
   }
 }
