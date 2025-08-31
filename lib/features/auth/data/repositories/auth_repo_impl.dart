@@ -112,12 +112,7 @@ class AuthRepositoryImpl implements AuthRepository {
         LocalStorageKeys.refreshToken,
         response.data['data']['refresh_token'],
       );
-      return {
-        'user': response.data['data']['user'],
-        'company': response.data['data']['company'],
-        'role': response.data['data']['role'],
-        'type': response.data['data']['user']['type'],
-      };
+      return response.data['data'];
     } catch (e) {
       throw Exception('Failed to register: $e');
     }

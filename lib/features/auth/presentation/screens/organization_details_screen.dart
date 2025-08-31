@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:hrms/core/config/color_cofig.dart';
+import 'package:hrms/core/config/text_config.dart';
 import 'package:hrms/core/config/local_storage_keys.dart';
 import 'package:hrms/core/di/get_it.dart';
 import 'package:hrms/core/services/shared_pref_service.dart';
@@ -17,7 +19,8 @@ class OrganizationDetailsScreen extends StatefulWidget {
       _OrganizationDetailsScreenState();
 }
 
-class _OrganizationDetailsScreenState extends State<OrganizationDetailsScreen> {
+class _OrganizationDetailsScreenState extends State<OrganizationDetailsScreen>
+    with TickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
   final _companyNameController = TextEditingController();
   final _companyEmailController = TextEditingController();
@@ -53,9 +56,21 @@ class _OrganizationDetailsScreenState extends State<OrganizationDetailsScreen> {
     '200+ employees',
   ];
 
+  late AnimationController _animationController;
+  late Animation<double> _fadeAnimation;
+
   @override
   void initState() {
     super.initState();
+    _animationController = AnimationController(
+      duration: const Duration(milliseconds: 800),
+      vsync: this,
+    );
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _animationController, curve: Curves.easeIn),
+    );
+    _animationController.forward();
+
     // Prefill fields from shared prefs, use empty string if null
     _companyNameController.text =
         prefs.getString(LocalStorageKeys.companyName)?.trim().isNotEmpty == true
@@ -110,8 +125,14 @@ class _OrganizationDetailsScreenState extends State<OrganizationDetailsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.white,
       appBar: AppBar(
-        title: Text('Organization Details'),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        title: Text(
+          'Organization Details',
+          style: AppTypography.headline6(color: AppColors.primary),
+        ),
         automaticallyImplyLeading: false,
       ),
       body: BlocListener<OrgDetailBloc, OrgDetailState>(
@@ -127,222 +148,424 @@ class _OrganizationDetailsScreenState extends State<OrganizationDetailsScreen> {
             }
           }
         },
-        child: SingleChildScrollView(
-          padding: EdgeInsets.all(24.0),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Tell us about your organization',
-                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-                ),
-                SizedBox(height: 8),
-                Text(
-                  'This information helps us customize your experience',
-                  style: TextStyle(color: Colors.grey.shade600),
-                ),
-                SizedBox(height: 32),
-
-                Text(
-                  'Required Information',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.blue.shade600,
-                  ),
-                ),
-                SizedBox(height: 16),
-
-                TextFormField(
-                  controller: _companyNameController,
-                  decoration: InputDecoration(
-                    labelText: 'Company Name *',
-                    border: OutlineInputBorder(),
-                    hintText: 'e.g., ABC Corp',
-                  ),
-                  validator: (value) {
-                    if (value?.isEmpty ?? true) {
-                      return 'Company name is required';
-                    }
-                    return null;
-                  },
-                ),
-                SizedBox(height: 16),
-
-                TextFormField(
-                  controller: _companyEmailController,
-                  decoration: InputDecoration(
-                    labelText: 'Company Email *',
-                    border: OutlineInputBorder(),
-                    hintText: 'contact@company.com',
-                  ),
-                  keyboardType: TextInputType.emailAddress,
-                  validator: (value) {
-                    if (value?.isEmpty ?? true) {
-                      return 'Company email is required';
-                    }
-                    if (!value!.contains('@')) return 'Enter a valid email';
-                    return null;
-                  },
-                ),
-                SizedBox(height: 16),
-
-                DropdownButtonFormField<String>(
-                  value: _selectedIndustry,
-                  decoration: InputDecoration(
-                    labelText: 'Industry Type *',
-                    border: OutlineInputBorder(),
-                  ),
-                  hint: const Text('Select Industry'),
-                  items:
-                      _industries.map((industry) {
-                        return DropdownMenuItem(
-                          value: industry,
-                          child: Text(industry),
-                        );
-                      }).toList(),
-                  onChanged: (value) {
-                    setState(() => _selectedIndustry = value);
-                  },
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Please select an industry';
-                    }
-                    return null;
-                  },
-                ),
-                SizedBox(height: 16),
-
-                DropdownButtonFormField<String>(
-                  value: _selectedCompanySize,
-                  decoration: InputDecoration(
-                    labelText: 'Company Size *',
-                    border: OutlineInputBorder(),
-                  ),
-                  hint: const Text('Select Company Size'),
-                  items:
-                      _companySizes.map((size) {
-                        return DropdownMenuItem(value: size, child: Text(size));
-                      }).toList(),
-                  onChanged: (value) {
-                    setState(() => _selectedCompanySize = value);
-                  },
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Please select company size';
-                    }
-                    return null;
-                  },
-                ),
-                SizedBox(height: 16),
-
-                // Phone with country code picker
-                TextFormField(
-                  controller: _phoneController,
-                  decoration: InputDecoration(
-                    labelText: 'Phone Number *',
-                    border: OutlineInputBorder(),
-                    prefixIcon: InkWell(
-                      onTap: () async {
-                        final code = await _countryPicker.showPicker(
-                          context: context,
-                        );
-                        if (code != null) {
-                          setState(() {
-                            _selectedCountryCode = code;
-                          });
-                          await prefs.setString(
-                            LocalStorageKeys.countryCode,
-                            code.dialCode,
-                          );
-                        }
-                      },
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            _selectedCountryCode?.flagImage() ??
-                                const SizedBox(),
-                            SizedBox(width: 4),
-                            Text(
-                              _selectedCountryCode?.dialCode ?? '+91',
-                              style: TextStyle(fontSize: 16),
-                            ),
-                            Icon(Icons.arrow_drop_down),
-                          ],
-                        ),
+        child: FadeTransition(
+          opacity: _fadeAnimation,
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(24.0),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Header Section
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(24),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          AppColors.info.withValues(alpha: 0.1),
+                          AppColors.primary.withValues(alpha: 0.05),
+                        ],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
                       ),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          height: 60,
+                          width: 60,
+                          decoration: BoxDecoration(
+                            color: AppColors.info,
+                            borderRadius: BorderRadius.circular(15),
+                          ),
+                          child: const Icon(
+                            Icons.business,
+                            color: AppColors.white,
+                            size: 30,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          'Tell us about your organization',
+                          style: AppTypography.headline5(
+                            color: AppColors.info,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'This information helps us customize your experience',
+                          style: AppTypography.body1(color: AppColors.grey),
+                        ),
+                      ],
                     ),
                   ),
-                  keyboardType: TextInputType.phone,
-                  validator: (value) {
-                    if (value == null || value.trim().isEmpty) {
-                      return 'Phone number is required';
-                    }
-                    return null;
-                  },
-                ),
-                SizedBox(height: 32),
+                  const SizedBox(height: 32),
 
-                Text(
-                  'Optional Information',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.grey.shade600,
+                  // Required Information Section
+                  _buildSectionHeader(
+                    'Required Information',
+                    AppColors.primary,
                   ),
-                ),
-                SizedBox(height: 16),
+                  const SizedBox(height: 16),
 
-                TextFormField(
-                  controller: _addressController,
-                  decoration: InputDecoration(
-                    labelText: 'Company Address',
-                    border: OutlineInputBorder(),
+                  _buildTextField(
+                    controller: _companyNameController,
+                    label: 'Company Name',
+                    icon: Icons.business_outlined,
+                    validator: (value) {
+                      if (value?.isEmpty ?? true) {
+                        return 'Company name is required';
+                      }
+                      return null;
+                    },
                   ),
-                  maxLines: 3,
-                ),
-                SizedBox(height: 16),
+                  const SizedBox(height: 20),
 
-                TextFormField(
-                  controller: _websiteController,
-                  decoration: InputDecoration(
-                    labelText: 'Website URL',
-                    border: OutlineInputBorder(),
-                    hintText: 'https://company.com',
+                  _buildTextField(
+                    controller: _companyEmailController,
+                    label: 'Company Email',
+                    icon: Icons.email_outlined,
+                    keyboardType: TextInputType.emailAddress,
+                    validator: (value) {
+                      if (value?.isEmpty ?? true) {
+                        return 'Company email is required';
+                      }
+                      if (!value!.contains('@')) return 'Enter a valid email';
+                      return null;
+                    },
                   ),
-                  keyboardType: TextInputType.url,
-                ),
-                SizedBox(height: 16),
+                  const SizedBox(height: 20),
 
-                TextFormField(
-                  controller: _taxIdController,
-                  decoration: InputDecoration(
-                    labelText: 'Tax ID',
-                    border: OutlineInputBorder(),
-                    hintText: 'For payroll compliance',
+                  _buildDropdownField(
+                    value: _selectedIndustry,
+                    label: 'Industry Type',
+                    icon: Icons.category_outlined,
+                    items: _industries,
+                    onChanged:
+                        (value) => setState(() => _selectedIndustry = value),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Please select an industry';
+                      }
+                      return null;
+                    },
                   ),
-                ),
-                SizedBox(height: 32),
+                  const SizedBox(height: 20),
 
-                SizedBox(
-                  width: double.infinity,
-                  height: 50,
-                  child: ElevatedButton(
-                    onPressed: _isLoading ? null : _saveDetails,
-                    child:
-                        _isLoading
-                            ? CircularProgressIndicator(color: Colors.white)
-                            : Text('Save & Continue'),
+                  _buildDropdownField(
+                    value: _selectedCompanySize,
+                    label: 'Company Size',
+                    icon: Icons.groups_outlined,
+                    items: _companySizes,
+                    onChanged:
+                        (value) => setState(() => _selectedCompanySize = value),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Please select company size';
+                      }
+                      return null;
+                    },
                   ),
-                ),
-              ],
+                  const SizedBox(height: 20),
+
+                  // Phone with country code picker
+                  _buildPhoneField(),
+                  const SizedBox(height: 32),
+
+                  // Optional Information Section
+                  _buildSectionHeader('Optional Information', AppColors.grey),
+                  const SizedBox(height: 16),
+
+                  _buildTextField(
+                    controller: _addressController,
+                    label: 'Company Address',
+                    icon: Icons.location_on_outlined,
+                    maxLines: 3,
+                  ),
+                  const SizedBox(height: 20),
+
+                  _buildTextField(
+                    controller: _websiteController,
+                    label: 'Website URL',
+                    icon: Icons.language_outlined,
+                    keyboardType: TextInputType.url,
+                  ),
+                  const SizedBox(height: 20),
+
+                  _buildTextField(
+                    controller: _taxIdController,
+                    label: 'Tax ID',
+                    icon: Icons.receipt_long_outlined,
+                  ),
+                  const SizedBox(height: 40),
+
+                  // Save Button
+                  Container(
+                    width: double.infinity,
+                    height: 56,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [AppColors.primary, AppColors.info],
+                        begin: Alignment.centerLeft,
+                        end: Alignment.centerRight,
+                      ),
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppColors.primary.withValues(alpha: 0.3),
+                          blurRadius: 15,
+                          offset: const Offset(0, 8),
+                        ),
+                      ],
+                    ),
+                    child: ElevatedButton(
+                      onPressed: _isLoading ? null : _saveDetails,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.transparent,
+                        shadowColor: Colors.transparent,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                      ),
+                      child:
+                          _isLoading
+                              ? const CircularProgressIndicator(
+                                color: AppColors.white,
+                              )
+                              : Text(
+                                'Save & Continue',
+                                style: AppTypography.button(
+                                  color: AppColors.white,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildSectionHeader(String title, Color color) {
+    return Row(
+      children: [
+        Container(
+          width: 4,
+          height: 24,
+          decoration: BoxDecoration(
+            color: color,
+            borderRadius: BorderRadius.circular(2),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Text(
+          title,
+          style: AppTypography.headline6(
+            color: color,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTextField({
+    required TextEditingController controller,
+    required String label,
+    required IconData icon,
+    TextInputType? keyboardType,
+    int maxLines = 1,
+    String? Function(String?)? validator,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.grey.withValues(alpha: 0.1),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: TextFormField(
+        controller: controller,
+        keyboardType: keyboardType,
+        maxLines: maxLines,
+        style: AppTypography.body1(color: AppColors.black),
+        decoration: InputDecoration(
+          labelText: label,
+          labelStyle: AppTypography.body2(color: AppColors.grey),
+          prefixIcon: Icon(icon, color: AppColors.info),
+          filled: true,
+          fillColor: AppColors.white,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: BorderSide(
+              color: AppColors.grey.withValues(alpha: 0.2),
+            ),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: BorderSide(
+              color: AppColors.grey.withValues(alpha: 0.2),
+            ),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: const BorderSide(color: AppColors.info, width: 2),
+          ),
+          errorBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: const BorderSide(color: AppColors.error),
+          ),
+        ),
+        validator: validator,
+      ),
+    );
+  }
+
+  Widget _buildDropdownField({
+    required String? value,
+    required String label,
+    required IconData icon,
+    required List<String> items,
+    required void Function(String?) onChanged,
+    String? Function(String?)? validator,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.grey.withValues(alpha: 0.1),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: DropdownButtonFormField<String>(
+        value: value,
+        decoration: InputDecoration(
+          labelText: label,
+          labelStyle: AppTypography.body2(color: AppColors.grey),
+          prefixIcon: Icon(icon, color: AppColors.info),
+          filled: true,
+          fillColor: AppColors.white,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: BorderSide(
+              color: AppColors.grey.withValues(alpha: 0.2),
+            ),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: BorderSide(
+              color: AppColors.grey.withValues(alpha: 0.2),
+            ),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: const BorderSide(color: AppColors.info, width: 2),
+          ),
+        ),
+        style: AppTypography.body1(color: AppColors.black),
+        items:
+            items.map((item) {
+              return DropdownMenuItem(
+                value: item,
+                child: Text(
+                  item,
+                  style: AppTypography.body1(color: AppColors.black),
+                ),
+              );
+            }).toList(),
+        onChanged: onChanged,
+        validator: validator,
+      ),
+    );
+  }
+
+  Widget _buildPhoneField() {
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.grey.withValues(alpha: 0.1),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: TextFormField(
+        controller: _phoneController,
+        keyboardType: TextInputType.phone,
+        style: AppTypography.body1(color: AppColors.black),
+        decoration: InputDecoration(
+          labelText: 'Phone Number',
+          labelStyle: AppTypography.body2(color: AppColors.grey),
+          prefixIcon: InkWell(
+            onTap: () async {
+              final code = await _countryPicker.showPicker(context: context);
+              if (code != null) {
+                setState(() => _selectedCountryCode = code);
+                await prefs.setString(
+                  LocalStorageKeys.countryCode,
+                  code.dialCode,
+                );
+              }
+            },
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _selectedCountryCode?.flagImage() ?? const SizedBox(),
+                  const SizedBox(width: 4),
+                  Text(
+                    _selectedCountryCode?.dialCode ?? '+91',
+                    style: AppTypography.body1(color: AppColors.info),
+                  ),
+                  const Icon(Icons.arrow_drop_down, color: AppColors.info),
+                ],
+              ),
+            ),
+          ),
+          filled: true,
+          fillColor: AppColors.white,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: BorderSide(
+              color: AppColors.grey.withValues(alpha: 0.2),
+            ),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: BorderSide(
+              color: AppColors.grey.withValues(alpha: 0.2),
+            ),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: const BorderSide(color: AppColors.info, width: 2),
+          ),
+        ),
+        validator: (value) {
+          if (value == null || value.trim().isEmpty) {
+            return 'Phone number is required';
+          }
+          return null;
+        },
       ),
     );
   }
@@ -371,6 +594,7 @@ class _OrganizationDetailsScreenState extends State<OrganizationDetailsScreen> {
 
   @override
   void dispose() {
+    _animationController.dispose();
     _companyNameController.dispose();
     _companyEmailController.dispose();
     _addressController.dispose();

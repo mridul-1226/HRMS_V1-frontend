@@ -1,5 +1,3 @@
-import 'dart:developer';
-
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:hrms/core/di/get_it.dart';
 import 'package:jwt_decoder/jwt_decoder.dart';
@@ -30,7 +28,6 @@ class SplashBloc extends Bloc<SplashEvent, SplashState> {
 
       // Get access token from secure storage
       final accessToken = await _secureStorage.readData(LocalStorageKeys.token);
-      log(accessToken.toString());
 
       if (accessToken == null || accessToken.isEmpty) {
         emit(SplashLoading('Redirecting to login...'));
@@ -62,9 +59,6 @@ class SplashBloc extends Bloc<SplashEvent, SplashState> {
       // Decode token to get user info
       final decodedToken = JwtDecoder.decode(accessToken);
       final userRole = decodedToken['role'] ?? '';
-      final userId = decodedToken['user_id']?.toString() ?? '';
-
-      log('User role: $userRole, User ID: $userId');
 
       emit(SplashLoading('Loading dashboard...'));
       await Future.delayed(const Duration(milliseconds: 500));
@@ -76,28 +70,19 @@ class SplashBloc extends Bloc<SplashEvent, SplashState> {
             ) ??
             false;
         if (!organizationDetailsCompleted) {
-          log(
-            'Admin details not completed, redirecting to organization details',
-          );
           emit(SplashLoading('Setting up organization details...'));
           await Future.delayed(const Duration(milliseconds: 500));
           emit(NavigateToOrganizationDetails());
         } else {
-          log(
-            'Admin logged in with completed details, redirecting to admin dashboard',
-          );
           emit(SplashLoading('Loading admin dashboard...'));
           await Future.delayed(const Duration(milliseconds: 500));
           emit(NavigateToAdminDashboard());
         }
       } else if (userRole == 'employee') {
-        log('Employee logged in, redirecting to employee dashboard');
         emit(SplashLoading('Loading employee dashboard...'));
         await Future.delayed(const Duration(milliseconds: 500));
         emit(NavigateToEmployeeDashboard());
       } else {
-        // Unknown role, clear data and redirect to onboarding
-        log('Unknown user role: $userRole, clearing data');
         await _secureStorage.deleteAll();
         await _sharedPref.clear();
         emit(SplashLoading('Invalid user role, redirecting to onboarding...'));
@@ -168,14 +153,8 @@ class SplashBloc extends Bloc<SplashEvent, SplashState> {
             false;
 
         if (!organizationDetailsCompleted) {
-          log(
-            'Admin details not completed after refresh, redirecting to organization details',
-          );
           emit(NavigateToOrganizationDetails());
         } else {
-          log(
-            'Admin logged in with completed details after refresh, redirecting to admin dashboard',
-          );
           emit(NavigateToAdminDashboard());
         }
       } else {

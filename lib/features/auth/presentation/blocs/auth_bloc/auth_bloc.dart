@@ -85,12 +85,28 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
           companyUser.phone ?? '',
         );
         await prefs.setString(
+          LocalStorageKeys.countryCode,
+          companyUser.countryCode ?? '',
+        );
+        await prefs.setString(
           LocalStorageKeys.companyTaxId,
           companyUser.taxId ?? '',
         );
         await prefs.setString(
           LocalStorageKeys.companyWebsite,
           companyUser.website ?? '',
+        );
+
+        final requiredFilled =
+            (companyUser.companyName.isNotEmpty) &&
+            (companyUser.email.isNotEmpty) &&
+            (companyUser.industry?.isNotEmpty ?? false) &&
+            (companyUser.size?.isNotEmpty ?? false) &&
+            (companyUser.countryCode?.isNotEmpty ?? false) &&
+            (companyUser.phone?.isNotEmpty ?? false);
+        await prefs.setBool(
+          LocalStorageKeys.organizationDetailsCompleted,
+          requiredFilled,
         );
 
         emit(Authenticated(userId: userJson['id'].toString()));
@@ -159,6 +175,10 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
           companyUser.address ?? '',
         );
         await prefs.setString(
+          LocalStorageKeys.countryCode,
+          companyUser.countryCode ?? '',
+        );
+        await prefs.setString(
           LocalStorageKeys.companyPhone,
           companyUser.phone ?? '',
         );
@@ -169,6 +189,18 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         await prefs.setString(
           LocalStorageKeys.companyWebsite,
           companyUser.website ?? '',
+        );
+
+        final requiredFilled =
+            (companyUser.companyName.isNotEmpty) &&
+            (companyUser.email.isNotEmpty) &&
+            (companyUser.industry?.isNotEmpty ?? false) &&
+            (companyUser.size?.isNotEmpty ?? false) &&
+            (companyUser.countryCode?.isNotEmpty ?? false) &&
+            (companyUser.phone?.isNotEmpty ?? false);
+        await prefs.setBool(
+          LocalStorageKeys.organizationDetailsCompleted,
+          requiredFilled,
         );
 
         emit(Authenticated(userId: userJson['id'].toString()));
