@@ -1,5 +1,7 @@
 import 'package:go_router/go_router.dart';
+import 'package:hrms/core/config/local_storage_keys.dart';
 import 'package:hrms/features/admin/presentation/screens/admin_dashboard_screen.dart';
+import 'package:hrms/features/admin/presentation/screens/create_update_policy_screen.dart';
 import 'package:hrms/features/auth/presentation/screens/change_password_screen.dart';
 import 'package:hrms/features/auth/presentation/screens/forgot_password_screen.dart';
 import 'package:hrms/features/auth/presentation/screens/login_screen.dart';
@@ -8,6 +10,7 @@ import 'package:hrms/features/auth/presentation/screens/organization_signup_scre
 import 'package:hrms/features/auth/presentation/screens/reset_password_otp_screen.dart';
 import 'package:hrms/features/auth/presentation/screens/welcome_screen.dart';
 import 'package:hrms/features/initialization/splash_screen.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 final GoRouter router = GoRouter(
   initialLocation: '/',
@@ -64,7 +67,30 @@ final GoRouter router = GoRouter(
     GoRoute(
       path: '/admin-dashboard',
       name: 'admin-dashboard',
+      redirect: (context, state) async {
+        final prefs = await SharedPreferences.getInstance();
+        final isPolicyFilled =
+            prefs.getBool(LocalStorageKeys.policyFilled) ?? false;
+        if (!isPolicyFilled) {
+            return '/create-policy?isEdit=false&scope=company&scopeId=0';
+        }
+        return null;
+      },
       builder: (context, state) => AdminDashboardScreen(),
+    ),
+    GoRoute(
+      path: '/create-policy',
+      name: 'create-policy',
+      builder: (context, state) {
+        final isEdit = state.uri.queryParameters['isEdit'] == 'true';
+        final scope = state.uri.queryParameters['scope'] ?? 'company';
+        final scopeId = int.tryParse(state.uri.queryParameters['scopeId'] ?? '0') ?? 0;
+        return CreateUpdatePolicyScreen(
+          isEdit: isEdit,
+          scope: scope,
+          scopeId: scopeId,
+        );
+      },
     ),
     // GoRoute(
     //   path: '/employee-dashboard',

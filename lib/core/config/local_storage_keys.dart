@@ -10,6 +10,7 @@ class LocalStorageKeys {
   static const String countryCode = 'country_code';
   static const String phone = 'phone';
   static const String companyId = 'company_id';
+  static const String policyFilled = 'policy_filled';
   static const String companyName = 'company_name';
   static const String companyEmail = 'company_email';
   static const String companyLogo = 'company_logo';
