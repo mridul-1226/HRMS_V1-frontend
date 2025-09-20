@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
-import 'package:hrms/features/initialization/bloc/splash_bloc.dart';
-import 'package:hrms/features/initialization/bloc/splash_event.dart';
-import 'package:hrms/features/initialization/bloc/splash_state.dart';
+import 'package:hrms/features/auth/presentation/blocs/splash_bloc/splash_bloc.dart';
+import 'package:hrms/features/auth/presentation/blocs/splash_bloc/splash_event.dart';
+import 'package:hrms/features/auth/presentation/blocs/splash_bloc/splash_state.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});

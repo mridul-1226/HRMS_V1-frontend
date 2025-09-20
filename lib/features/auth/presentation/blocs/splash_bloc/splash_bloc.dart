@@ -4,8 +4,8 @@ import 'package:jwt_decoder/jwt_decoder.dart';
 import 'package:hrms/core/config/local_storage_keys.dart';
 import 'package:hrms/core/services/secure_storage_service.dart';
 import 'package:hrms/core/services/shared_pref_service.dart';
-import 'package:hrms/features/initialization/bloc/splash_event.dart';
-import 'package:hrms/features/initialization/bloc/splash_state.dart';
+import 'package:hrms/features/auth/presentation/blocs/splash_bloc/splash_event.dart';
+import 'package:hrms/features/auth/presentation/blocs/splash_bloc/splash_state.dart';
 
 class SplashBloc extends Bloc<SplashEvent, SplashState> {
   final SecureStorageService _secureStorage = getIt<SecureStorageService>();

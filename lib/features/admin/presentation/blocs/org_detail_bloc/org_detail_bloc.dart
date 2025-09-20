@@ -5,10 +5,10 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:hrms/core/config/local_storage_keys.dart';
 import 'package:hrms/core/di/get_it.dart';
 import 'package:hrms/core/services/shared_pref_service.dart';
+import 'package:hrms/features/admin/domain/repositories/company_repository.dart';
 import 'package:hrms/features/auth/data/models/company_model.dart';
 import 'package:hrms/features/auth/domain/entities/company.dart';
-import 'package:hrms/features/auth/domain/repositories/company_repository.dart';
-import 'package:hrms/features/auth/domain/use_cases/store_company_details_usecase.dart';
+import 'package:hrms/features/admin/domain/use_cases/store_company_details_usecase.dart';
 
 part 'org_detail_event.dart';
 part 'org_detail_state.dart';

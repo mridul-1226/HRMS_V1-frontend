@@ -5,11 +5,11 @@ import 'package:hrms/features/admin/presentation/screens/create_update_policy_sc
 import 'package:hrms/features/auth/presentation/screens/change_password_screen.dart';
 import 'package:hrms/features/auth/presentation/screens/forgot_password_screen.dart';
 import 'package:hrms/features/auth/presentation/screens/login_screen.dart';
-import 'package:hrms/features/auth/presentation/screens/organization_details_screen.dart';
+import 'package:hrms/features/admin/presentation/screens/organization_details_screen.dart';
 import 'package:hrms/features/auth/presentation/screens/organization_signup_screen.dart';
 import 'package:hrms/features/auth/presentation/screens/reset_password_otp_screen.dart';
 import 'package:hrms/features/auth/presentation/screens/welcome_screen.dart';
-import 'package:hrms/features/initialization/splash_screen.dart';
+import 'package:hrms/features/auth/presentation/screens/splash_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 final GoRouter router = GoRouter(
@@ -71,8 +71,9 @@ final GoRouter router = GoRouter(
         final prefs = await SharedPreferences.getInstance();
         final isPolicyFilled =
             prefs.getBool(LocalStorageKeys.policyFilled) ?? false;
+        final companyId = prefs.getString(LocalStorageKeys.companyId);
         if (!isPolicyFilled) {
-            return '/create-policy?isEdit=false&scope=company&scopeId=0';
+            return '/create-policy?isEdit=false&scope=company&scopeId=$companyId';
         }
         return null;
       },
@@ -86,7 +87,6 @@ final GoRouter router = GoRouter(
         final scope = state.uri.queryParameters['scope'] ?? 'company';
         final scopeId = int.tryParse(state.uri.queryParameters['scopeId'] ?? '0') ?? 0;
         return CreateUpdatePolicyScreen(
-          isEdit: isEdit,
           scope: scope,
           scopeId: scopeId,
         );

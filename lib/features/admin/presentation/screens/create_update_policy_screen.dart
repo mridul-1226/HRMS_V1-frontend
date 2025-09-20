@@ -1,21 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hrms/core/config/color_cofig.dart';
 import 'package:hrms/core/config/text_config.dart';
+import 'package:hrms/features/admin/presentation/blocs/policy_bloc/policy_bloc.dart';
 
 class CreateUpdatePolicyScreen extends StatefulWidget {
-  final bool isEdit;
-  final Map<String, dynamic>? existingPolicy;
   final String? scope;
   final int? scopeId;
 
-  const CreateUpdatePolicyScreen({
-    super.key,
-    this.isEdit = false,
-    this.existingPolicy,
-    this.scope,
-    this.scopeId,
-  });
+  const CreateUpdatePolicyScreen({super.key, this.scope, this.scopeId});
 
   @override
   State<CreateUpdatePolicyScreen> createState() =>
@@ -23,14 +17,14 @@ class CreateUpdatePolicyScreen extends StatefulWidget {
 }
 
 class _CreateUpdatePolicyScreenState extends State<CreateUpdatePolicyScreen> {
-  final _formKey = GlobalKey<FormState>();
-  final _titleController = TextEditingController();
-  final _effectiveDateController = TextEditingController();
+  final PageController _pageController = PageController();
+  int _currentPage = 0;
 
-  String? _selectedType;
-  DateTime? _selectedDate;
-  List<Map<String, String>> _policyDetails = [];
-  final List<GlobalKey<FormState>> _detailKeys = [];
+  // Store all policies data
+  final Map<String, Map<String, dynamic>> _policiesData = {};
+  final Map<String, List<Map<String, String>>> _policiesDetails = {};
+  final Map<String, TextEditingController> _titleControllers = {};
+  final Map<String, TextEditingController> _dateControllers = {};
 
   final List<String> _policyTypes = [
     'leave',
@@ -44,57 +38,79 @@ class _CreateUpdatePolicyScreenState extends State<CreateUpdatePolicyScreen> {
   @override
   void initState() {
     super.initState();
-    if (widget.isEdit && widget.existingPolicy != null) {
-      _loadExistingPolicy();
-    } else {
-      _addNewDetailField();
+    _initializePolicies();
+    // Load policies when screen opens
+    context.read<PolicyBloc>().add(
+      LoadPolicies(scope: widget.scope ?? '', scopeId: widget.scopeId),
+    );
+  }
+
+  void _initializePolicies() {
+    for (final type in _policyTypes) {
+      _policiesData[type] = {
+        'type': type,
+        'title': '',
+        'effective_date': '',
+        'isEnabled': type != 'others', // Others is optional
+      };
+      _policiesDetails[type] = [
+        {'key': '', 'value': ''},
+      ];
+      _titleControllers[type] = TextEditingController();
+      _dateControllers[type] = TextEditingController();
     }
   }
 
-  void _loadExistingPolicy() {
-    final policy = widget.existingPolicy!;
-    _titleController.text = policy['title'] ?? '';
-    _selectedType = policy['type'];
-    _effectiveDateController.text = policy['effective_date'] ?? '';
-
-    // Load existing details
-    final details = policy['details'] as Map<String, dynamic>?;
-    if (details != null) {
-      _policyDetails =
-          details.entries.map((entry) {
-            return {'key': entry.key, 'value': entry.value.toString()};
-          }).toList();
+  void _loadExistingPolicies(List<Map<String, dynamic>> policies) {
+    // Clear all fields first
+    _initializePolicies();
+    for (final policy in policies) {
+      final type = policy['type'] as String;
+      if (_policyTypes.contains(type)) {
+        _policiesData[type]!['title'] = policy['title'] ?? '';
+        _policiesData[type]!['effective_date'] = policy['effective_date'] ?? '';
+        _policiesData[type]!['isEnabled'] = true;
+        _titleControllers[type]!.text = policy['title'] ?? '';
+        _dateControllers[type]!.text = policy['effective_date'] ?? '';
+        final details = policy['details'] as Map<String, dynamic>?;
+        if (details != null) {
+          _policiesDetails[type] =
+              details.entries.map((entry) {
+                return {'key': entry.key, 'value': entry.value.toString()};
+              }).toList();
+        }
+        if (_policiesDetails[type]!.isEmpty) {
+          _policiesDetails[type]!.add({'key': '', 'value': ''});
+        }
+      }
     }
-
-    if (_policyDetails.isEmpty) {
-      _addNewDetailField();
-    }
+    setState(() {});
   }
 
-  void _addNewDetailField() {
+  void _addDetailField(String type) {
     setState(() {
-      _policyDetails.add({'key': '', 'value': ''});
-      _detailKeys.add(GlobalKey<FormState>());
+      _policiesDetails[type]!.add({'key': '', 'value': ''});
     });
   }
 
-  void _removeDetailField(int index) {
-    if (_policyDetails.length > 1) {
+  void _removeDetailField(String type, int index) {
+    if (_policiesDetails[type]!.length > 1) {
       setState(() {
-        _policyDetails.removeAt(index);
-        _detailKeys.removeAt(index);
+        _policiesDetails[type]!.removeAt(index);
       });
     }
   }
 
-  bool _hasDuplicateKeys() {
-    final keys = _policyDetails.map((detail) => detail['key']?.trim()).toList();
+  bool _hasDuplicateKeys(String type) {
+    final keys =
+        _policiesDetails[type]!.map((detail) => detail['key']?.trim()).toList();
     final uniqueKeys = keys.toSet();
     return keys.length != uniqueKeys.length;
   }
 
-  List<int> _getDuplicateIndices() {
-    final keys = _policyDetails.map((detail) => detail['key']?.trim()).toList();
+  List<int> _getDuplicateIndices(String type) {
+    final keys =
+        _policiesDetails[type]!.map((detail) => detail['key']?.trim()).toList();
     final duplicateIndices = <int>[];
 
     for (int i = 0; i < keys.length; i++) {
@@ -109,31 +125,129 @@ class _CreateUpdatePolicyScreenState extends State<CreateUpdatePolicyScreen> {
     return duplicateIndices;
   }
 
+  void _nextPage() {
+    if (_currentPage < _policyTypes.length - 1) {
+      _pageController.nextPage(
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+      );
+    }
+  }
+
+  void _previousPage() {
+    if (_currentPage > 0) {
+      _pageController.previousPage(
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+      );
+    }
+  }
+
+  void _skipOthers() {
+    // Mark others as disabled and submit all policies
+    setState(() {
+      _policiesData['others']!['isEnabled'] = false;
+    });
+    _handleSubmit();
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.white,
-      appBar: _buildAppBar(),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+    return BlocConsumer<PolicyBloc, PolicyState>(
+      listener: (context, state) {
+        if (state is PolicyLoaded) {
+          _loadExistingPolicies(state.policies);
+        } else if (state is PolicyError) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                state.message,
+                style: AppTypography.body2(color: AppColors.white),
+              ),
+              backgroundColor: AppColors.error,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              duration: const Duration(seconds: 3),
+            ),
+          );
+        } else if (state is PolicyOperationSuccess) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                state.message,
+                style: AppTypography.body2(color: AppColors.white),
+              ),
+              backgroundColor: AppColors.success,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              duration: const Duration(seconds: 3),
+            ),
+          );
+          context.goNamed('admin-dashboard');
+        }
+      },
+      builder: (context, state) {
+        final isScreenLoading = state is PolicyLoading;
+        final isButtonLoading = state is PolicyCreatingOrUpdating;
+        return IgnorePointer(
+          ignoring: isScreenLoading || isButtonLoading,
+          child: Stack(
             children: [
-              _buildHeaderSection(),
-              const SizedBox(height: 32),
-              _buildPolicyTypeSection(),
-              const SizedBox(height: 24),
-              _buildScopeDisplay(),
-              const SizedBox(height: 24),
-              _buildPolicyDetailsSection(),
-              const SizedBox(height: 32),
-              _buildActionButtons(),
+              Scaffold(
+                backgroundColor: AppColors.white,
+                appBar: _buildAppBar(),
+                body: Column(
+                  children: [
+                    _buildProgressIndicator(),
+                    Expanded(
+                      child: PageView.builder(
+                        controller: _pageController,
+                        onPageChanged: (page) {
+                          setState(() {
+                            _currentPage = page;
+                          });
+                          _syncControllersWithData(_policyTypes[page]);
+                        },
+                        itemCount: _policyTypes.length,
+                        itemBuilder: (context, index) {
+                          final currentType = _policyTypes[index];
+                          WidgetsBinding.instance.addPostFrameCallback((_) {
+                            _syncControllersWithData(currentType);
+                          });
+                          return SingleChildScrollView(
+                            padding: const EdgeInsets.all(20),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                _buildHeaderSection(),
+                                const SizedBox(height: 32),
+                                _buildPolicyTypePage(_policyTypes[index]),
+                                const SizedBox(height: 32),
+                                _buildNavigationButtons(
+                                  isButtonLoading: isButtonLoading,
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (isScreenLoading)
+                Container(
+                  color: AppColors.white.withOpacity(0.7),
+                  child: const Center(child: CircularProgressIndicator()),
+                ),
             ],
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 
@@ -146,10 +260,43 @@ class _CreateUpdatePolicyScreenState extends State<CreateUpdatePolicyScreen> {
         onPressed: () => context.pop(),
       ),
       title: Text(
-        widget.isEdit ? 'Update Policy' : 'Create Policy',
+        'Create Policies',
         style: AppTypography.headline6(color: AppColors.black),
       ),
       centerTitle: true,
+    );
+  }
+
+  Widget _buildProgressIndicator() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      child: Column(
+        children: [
+          Row(
+            children: List.generate(
+              _policyTypes.length,
+              (index) => Expanded(
+                child: Container(
+                  height: 4,
+                  margin: const EdgeInsets.symmetric(horizontal: 2),
+                  decoration: BoxDecoration(
+                    color:
+                        index <= _currentPage
+                            ? AppColors.primary
+                            : AppColors.grey.withValues(alpha: 0.3),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            '${_currentPage + 1} of ${_policyTypes.length}',
+            style: AppTypography.caption(color: AppColors.grey),
+          ),
+        ],
+      ),
     );
   }
 
@@ -180,11 +327,7 @@ class _CreateUpdatePolicyScreenState extends State<CreateUpdatePolicyScreen> {
                   color: AppColors.primary,
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: Icon(
-                  widget.isEdit ? Icons.edit_document : Icons.policy,
-                  color: AppColors.white,
-                  size: 24,
-                ),
+                child: Icon(Icons.policy, color: AppColors.white, size: 24),
               ),
               const SizedBox(width: 16),
               Expanded(
@@ -192,12 +335,12 @@ class _CreateUpdatePolicyScreenState extends State<CreateUpdatePolicyScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      widget.isEdit ? 'Update Policy' : 'Create New Policy',
+                      _getPolicyTypeTitle(_policyTypes[_currentPage]),
                       style: AppTypography.headline6(color: AppColors.primary),
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'Define rules and guidelines for your organization',
+                      _getPolicyTypeDescription(_policyTypes[_currentPage]),
                       style: AppTypography.body2(color: AppColors.grey),
                     ),
                   ],
@@ -210,98 +353,123 @@ class _CreateUpdatePolicyScreenState extends State<CreateUpdatePolicyScreen> {
     );
   }
 
-  Widget _buildPolicyTypeSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _buildSectionTitle('Policy Information', Icons.info_outline),
-        const SizedBox(height: 16),
-        _buildCustomTextField(
-          controller: _titleController,
-          label: 'Policy Title',
-          hint: 'Sick Leave Policy',
-          icon: Icons.title,
-          validator: (value) {
-            if (value?.isEmpty ?? true) return 'Policy title is required';
-            return null;
-          },
-        ),
-        const SizedBox(height: 16),
-        _buildDecorativeDropdownField(
-          label: 'Policy Type',
-          value: _selectedType,
-          items: _policyTypes,
-          hint: 'Select policy type',
-          icon: Icons.category,
-          onChanged: (value) => setState(() => _selectedType = value),
-          validator: (value) {
-            if (value == null) return 'Policy type is required';
-            return null;
-          },
-        ),
-      ],
-    );
-  }
-
-  Widget _buildScopeDisplay() {
-    String scopeText = 'Company-wide Policy';
-    IconData scopeIcon = Icons.business;
-    Color scopeColor = AppColors.primary;
-
-    if (widget.scope == 'department') {
-      scopeText = 'Department Policy';
-      scopeIcon = Icons.apartment;
-      scopeColor = AppColors.info;
-    } else if (widget.scope == 'employee') {
-      scopeText = 'Employee Policy';
-      scopeIcon = Icons.person;
-      scopeColor = AppColors.success;
+  String _getPolicyTypeTitle(String type) {
+    switch (type) {
+      case 'leave':
+        return 'Leave Policy';
+      case 'attendance':
+        return 'Attendance Policy';
+      case 'overtime':
+        return 'Overtime Policy';
+      case 'late':
+        return 'Late Policy';
+      case 'working_hours':
+        return 'Working Hours Policy';
+      case 'others':
+        return 'Other Policies (Optional)';
+      default:
+        return 'Policy';
     }
+  }
+
+  String _getPolicyTypeDescription(String type) {
+    switch (type) {
+      case 'leave':
+        return 'Define leave rules and guidelines';
+      case 'attendance':
+        return 'Set attendance requirements and rules';
+      case 'overtime':
+        return 'Configure overtime policies and rates';
+      case 'late':
+        return 'Establish late arrival policies';
+      case 'working_hours':
+        return 'Define standard working hours';
+      case 'others':
+        return 'Add any additional policies as needed';
+      default:
+        return 'Define rules and guidelines';
+    }
+  }
+
+  Widget _buildPolicyTypePage(String type) {
+    final isEnabled = _policiesData[type]!['isEnabled'] as bool;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildSectionTitle('Policy Scope', Icons.groups),
-        const SizedBox(height: 16),
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: scopeColor.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: scopeColor.withValues(alpha: 0.3)),
+        if (type == 'others') ...[
+          _buildEnableToggle(type),
+          const SizedBox(height: 16),
+        ],
+        if (isEnabled) ...[
+          _buildCustomTextField(
+            controller: _titleControllers[type]!,
+            label: 'Policy Title',
+            hint: 'Enter policy title',
+            icon: Icons.title,
+            validator: (value) {
+              if (value?.isEmpty ?? true) return 'Policy title is required';
+              return null;
+            },
+            onChanged: (value) {
+              _policiesData[type]!['title'] = value;
+            },
           ),
-          child: Row(
-            children: [
-              Icon(scopeIcon, color: scopeColor, size: 24),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  scopeText,
-                  style: AppTypography.body1(
-                    color: scopeColor,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
+          const SizedBox(height: 16),
+          _buildPolicyDetailsSection(type),
+          const SizedBox(height: 16),
+          _buildDateField(type),
+        ] else ...[
+          Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: AppColors.grey.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: AppColors.grey.withValues(alpha: 0.3)),
+            ),
+            child: Center(
+              child: Text(
+                'This policy type is disabled',
+                style: AppTypography.body1(color: AppColors.grey),
               ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: scopeColor,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  widget.scope?.toUpperCase() ?? 'COMPANY',
-                  style: AppTypography.caption(color: AppColors.white),
-                ),
-              ),
-            ],
+            ),
           ),
-        ),
+        ],
       ],
     );
   }
 
-  Widget _buildPolicyDetailsSection() {
+  Widget _buildEnableToggle(String type) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.primary.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.primary.withValues(alpha: 0.2)),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              'Enable Other Policies',
+              style: AppTypography.body1(color: AppColors.black),
+            ),
+          ),
+          Switch(
+            value: _policiesData[type]!['isEnabled'] as bool,
+            onChanged: (value) {
+              setState(() {
+                _policiesData[type]!['isEnabled'] = value;
+              });
+            },
+            activeColor: AppColors.primary,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPolicyDetailsSection(String type) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -310,17 +478,17 @@ class _CreateUpdatePolicyScreenState extends State<CreateUpdatePolicyScreen> {
           children: [
             _buildSectionTitle('Policy Details', Icons.description),
             IconButton(
-              onPressed: _addNewDetailField,
+              onPressed: () => _addDetailField(type),
               icon: Icon(Icons.add_circle, color: AppColors.primary, size: 28),
               tooltip: 'Add Detail',
             ),
           ],
         ),
         const SizedBox(height: 16),
-        ..._policyDetails.asMap().entries.map((entry) {
+        ..._policiesDetails[type]!.asMap().entries.map((entry) {
           final index = entry.key;
           final detail = entry.value;
-          final isDuplicate = _getDuplicateIndices().contains(index);
+          final isDuplicate = _getDuplicateIndices(type).contains(index);
 
           return Container(
             margin: const EdgeInsets.only(bottom: 16),
@@ -352,7 +520,7 @@ class _CreateUpdatePolicyScreenState extends State<CreateUpdatePolicyScreen> {
                         initialValue: detail['key'],
                         onChanged: (value) {
                           setState(() {
-                            _policyDetails[index]['key'] = value;
+                            _policiesDetails[type]![index]['key'] = value;
                           });
                         },
                         style: AppTypography.body1(color: AppColors.black),
@@ -412,7 +580,7 @@ class _CreateUpdatePolicyScreenState extends State<CreateUpdatePolicyScreen> {
                         initialValue: detail['value'],
                         onChanged: (value) {
                           setState(() {
-                            _policyDetails[index]['value'] = value;
+                            _policiesDetails[type]![index]['value'] = value;
                           });
                         },
                         style: AppTypography.body1(color: AppColors.black),
@@ -468,9 +636,9 @@ class _CreateUpdatePolicyScreenState extends State<CreateUpdatePolicyScreen> {
                         },
                       ),
                     ),
-                    if (_policyDetails.length > 1)
+                    if (_policiesDetails[type]!.length > 1)
                       IconButton(
-                        onPressed: () => _removeDetailField(index),
+                        onPressed: () => _removeDetailField(type, index),
                         icon: Icon(Icons.remove_circle, color: AppColors.error),
                         tooltip: 'Remove Detail',
                       ),
@@ -493,18 +661,16 @@ class _CreateUpdatePolicyScreenState extends State<CreateUpdatePolicyScreen> {
             ),
           );
         }),
-        const SizedBox(height: 16),
-        _buildDateField(),
       ],
     );
   }
 
-  Widget _buildDateField() {
+  Widget _buildDateField(String type) {
     return GestureDetector(
-      onTap: _selectDate,
+      onTap: () => _selectDate(type),
       child: AbsorbPointer(
         child: _buildCustomTextField(
-          controller: _effectiveDateController,
+          controller: _dateControllers[type]!,
           label: 'Effective Date',
           hint: 'Select date',
           icon: Icons.event,
@@ -517,10 +683,10 @@ class _CreateUpdatePolicyScreenState extends State<CreateUpdatePolicyScreen> {
     );
   }
 
-  Future<void> _selectDate() async {
+  Future<void> _selectDate(String type) async {
     final DateTime? picked = await showDatePicker(
       context: context,
-      initialDate: _selectedDate ?? DateTime.now(),
+      initialDate: DateTime.now(),
       firstDate: DateTime.now(),
       lastDate: DateTime.now().add(const Duration(days: 365)),
       builder: (context, child) {
@@ -540,9 +706,10 @@ class _CreateUpdatePolicyScreenState extends State<CreateUpdatePolicyScreen> {
 
     if (picked != null) {
       setState(() {
-        _selectedDate = picked;
-        _effectiveDateController.text =
+        final dateString =
             "${picked.year}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}";
+        _policiesData[type]!['effective_date'] = dateString;
+        _dateControllers[type]!.text = dateString;
       });
     }
   }
@@ -619,222 +786,321 @@ class _CreateUpdatePolicyScreenState extends State<CreateUpdatePolicyScreen> {
     );
   }
 
-  Widget _buildDecorativeDropdownField({
-    required String label,
-    required String? value,
-    required List<String> items,
-    required String hint,
-    required IconData icon,
-    required void Function(String?) onChanged,
-    String? Function(String?)? validator,
-  }) {
+  Widget _buildNavigationButtons({bool isButtonLoading = false}) {
+    final isLastPage = _currentPage == _policyTypes.length - 1;
+    final isFirstPage = _currentPage == 0;
+    final currentType = _policyTypes[_currentPage];
+    final isEnabled = _policiesData[currentType]!['isEnabled'] as bool;
+
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          label,
-          style: AppTypography.body2(
-            color: AppColors.secondary,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        const SizedBox(height: 8),
-        Container(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(12),
-            boxShadow: [
-              BoxShadow(
-                color: AppColors.grey.withValues(alpha: 0.1),
-                blurRadius: 4,
-                offset: const Offset(0, 2),
-              ),
-            ],
-          ),
-          child: DropdownButtonFormField<String>(
-            value: value,
-            validator: validator,
-            onChanged: onChanged,
-            style: AppTypography.body1(color: AppColors.black),
-            decoration: InputDecoration(
-              hintText: hint,
-              hintStyle: AppTypography.body2(color: AppColors.grey),
-              prefixIcon: Icon(icon, color: AppColors.primary),
-              filled: true,
-              fillColor: AppColors.white,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(
-                  color: AppColors.grey.withValues(alpha: 0.3),
+        Row(
+          children: [
+            if (!isFirstPage)
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: _previousPage,
+                  style: OutlinedButton.styleFrom(
+                    side: BorderSide(color: AppColors.primary),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                  ),
+                  child: Text(
+                    'Previous',
+                    style: AppTypography.button(color: AppColors.primary),
+                  ),
                 ),
               ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(
-                  color: AppColors.grey.withValues(alpha: 0.3),
+            if (!isFirstPage) const SizedBox(width: 12),
+            Expanded(
+              child: ElevatedButton(
+                onPressed:
+                    isButtonLoading
+                        ? null
+                        : () => _handleNextOrSubmit(
+                          currentType,
+                          isLastPage,
+                          isEnabled,
+                        ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  elevation: 2,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
                 ),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(color: AppColors.primary, width: 2),
-              ),
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 16,
-                vertical: 16,
+                child:
+                    isButtonLoading
+                        ? SizedBox(
+                          width: 24,
+                          height: 24,
+                          child: CircularProgressIndicator(
+                            color: AppColors.white,
+                            strokeWidth: 2.5,
+                          ),
+                        )
+                        : Text(
+                          _getNextButtonText(
+                            currentType,
+                            isLastPage,
+                            isEnabled,
+                          ),
+                          style: AppTypography.button(color: AppColors.white),
+                        ),
               ),
             ),
-            items:
-                items.map((String item) {
-                  return DropdownMenuItem<String>(
-                    value: item,
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 8,
-                          height: 8,
-                          decoration: BoxDecoration(
-                            color: AppColors.primary,
-                            shape: BoxShape.circle,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Text(
-                          item.replaceAll('_', ' ').toUpperCase(),
-                          style: AppTypography.body1(color: AppColors.black),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ],
-                    ),
-                  );
-                }).toList(),
-            dropdownColor: AppColors.white,
-            borderRadius: BorderRadius.circular(12),
-          ),
+          ],
         ),
+        if (isLastPage) ...[
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            height: 56,
+            child: OutlinedButton(
+              onPressed: isButtonLoading ? null : () => context.pop(),
+              style: OutlinedButton.styleFrom(
+                side: BorderSide(color: AppColors.grey),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              child: Text(
+                'Cancel',
+                style: AppTypography.button(color: AppColors.grey),
+              ),
+            ),
+          ),
+        ],
       ],
     );
   }
 
-  Widget _buildActionButtons() {
-    return Column(
-      children: [
-        SizedBox(
-          width: double.infinity,
-          height: 56,
-          child: ElevatedButton(
-            onPressed: _handleSubmit,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              elevation: 2,
-            ),
-            child: Text(
-              widget.isEdit ? 'Update Policy' : 'Create Policy',
-              style: AppTypography.button(color: AppColors.white),
-            ),
-          ),
+  String _getNextButtonText(
+    String currentType,
+    bool isLastPage,
+    bool isEnabled,
+  ) {
+    if (isLastPage) {
+      return 'Submit All Policies';
+    } else if (currentType == 'others' && !isEnabled) {
+      return 'Skip & Submit';
+    } else {
+      return 'Next';
+    }
+  }
+
+  void _handleNextOrSubmit(
+    String currentType,
+    bool isLastPage,
+    bool isEnabled,
+  ) {
+    if (isLastPage) {
+      _handleSubmit();
+    } else if (currentType == 'others' && !isEnabled) {
+      _skipOthers();
+    } else {
+      _validateAndNext(currentType);
+    }
+  }
+
+  void _validateAndNext(String currentType) {
+    // Validate current page before proceeding
+    if (!_validateCurrentPage(currentType)) {
+      return;
+    }
+
+    // If validation passes, go to next page
+    _nextPage();
+  }
+
+  bool _validateCurrentPage(String currentType) {
+    final isEnabled = _policiesData[currentType]!['isEnabled'] as bool;
+
+    // If this policy type is disabled (only applies to 'others'), skip validation
+    if (!isEnabled) {
+      return true;
+    }
+
+    // Check if title is filled
+    if (_policiesData[currentType]!['title'].toString().isEmpty) {
+      _showValidationError('Please enter a policy title');
+      return false;
+    }
+
+    // Check if effective date is selected
+    if (_policiesData[currentType]!['effective_date'].toString().isEmpty) {
+      _showValidationError('Please select an effective date');
+      return false;
+    }
+
+    // Check for duplicate keys
+    if (_hasDuplicateKeys(currentType)) {
+      _showValidationError('Please fix duplicate parameter names');
+      return false;
+    }
+
+    // Check if all detail fields are filled
+    for (final detail in _policiesDetails[currentType]!) {
+      final key = detail['key'];
+      final value = detail['value'];
+      if ((key == null || key.isEmpty) || (value == null || value.isEmpty)) {
+        _showValidationError('Please fill all parameter fields');
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  void _showValidationError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          message,
+          style: AppTypography.body2(color: AppColors.white),
         ),
-        const SizedBox(height: 12),
-        SizedBox(
-          width: double.infinity,
-          height: 56,
-          child: OutlinedButton(
-            onPressed: () => Navigator.pop(context),
-            style: OutlinedButton.styleFrom(
-              side: BorderSide(color: AppColors.grey),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-            child: Text(
-              'Cancel',
-              style: AppTypography.button(color: AppColors.grey),
-            ),
-          ),
-        ),
-      ],
+        backgroundColor: AppColors.error,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        duration: const Duration(seconds: 3),
+      ),
     );
   }
 
   void _handleSubmit() {
-    if (_formKey.currentState?.validate() ?? false) {
-      if (_hasDuplicateKeys()) {
-        // Trigger vibration effect
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Please fix duplicate keys before submitting!',
-              style: AppTypography.body2(color: AppColors.white),
-            ),
-            backgroundColor: AppColors.error,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-          ),
-        );
-        return;
-      }
+    // Validate all enabled policies
+    bool hasErrors = false;
+    String errorMessage = '';
 
-      final details = <String, dynamic>{};
-      for (final detail in _policyDetails) {
-        final key = detail['key']?.trim();
-        final value = detail['value']?.trim();
-        if (key != null &&
-            value != null &&
-            key.isNotEmpty &&
-            value.isNotEmpty) {
-          // Try to parse as number, otherwise keep as string
-          final numValue = num.tryParse(value);
-          details[key] = numValue ?? value;
+    for (final type in _policyTypes) {
+      if (_policiesData[type]!['isEnabled'] as bool) {
+        // Check if title is filled
+        if (_policiesData[type]!['title'].toString().isEmpty) {
+          hasErrors = true;
+          errorMessage = 'Please fill all policy titles';
+          break;
         }
+
+        // Check if effective date is selected
+        if (_policiesData[type]!['effective_date'].toString().isEmpty) {
+          hasErrors = true;
+          errorMessage = 'Please select effective dates for all policies';
+          break;
+        }
+
+        // Check for duplicate keys
+        if (_hasDuplicateKeys(type)) {
+          hasErrors = true;
+          errorMessage = 'Please fix duplicate parameter names in all policies';
+          break;
+        }
+
+        // Check if all detail fields are filled
+        for (final detail in _policiesDetails[type]!) {
+          final key = detail['key'];
+          final value = detail['value'];
+          if ((key == null || key.isEmpty) ||
+              (value == null || value.isEmpty)) {
+            hasErrors = true;
+            errorMessage = 'Please fill all parameter fields in all policies';
+            break;
+          }
+        }
+
+        if (hasErrors) break;
       }
+    }
 
-      final policyData = {
-        'type': _selectedType,
-        'title': _titleController.text,
-        'details': details,
-        'effective_date': _effectiveDateController.text,
-      };
-
-      // Add scope-specific fields based on parameters
-      if (widget.scope == 'employee' && widget.scopeId != null) {
-        policyData['employee'] = widget.scopeId;
-      } else if (widget.scope == 'department' && widget.scopeId != null) {
-        policyData['department'] = widget.scopeId;
-      } else if (widget.scopeId != null) {
-        policyData['company'] = widget.scopeId;
-      }
-
-      // TODO: Implement API call to create/update policy
-      print('Policy Data: $policyData');
-
-      // Show success message
+    if (hasErrors) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            widget.isEdit
-                ? 'Policy updated successfully!'
-                : 'Policy created successfully!',
+            errorMessage,
             style: AppTypography.body2(color: AppColors.white),
           ),
-          backgroundColor: AppColors.success,
+          backgroundColor: AppColors.error,
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
         ),
       );
+      return;
+    }
 
-      Navigator.pop(context);
+    // Prepare all policies data
+    final allPolicies = <Map<String, dynamic>>[];
+
+    for (final type in _policyTypes) {
+      if (_policiesData[type]!['isEnabled'] as bool) {
+        final details = <String, dynamic>{};
+        for (final detail in _policiesDetails[type]!) {
+          final key = detail['key']?.trim();
+          final value = detail['value']?.trim();
+          if (key != null &&
+              value != null &&
+              key.isNotEmpty &&
+              value.isNotEmpty) {
+            final numValue = num.tryParse(value);
+            details[key] = numValue ?? value;
+          }
+        }
+
+        final policyData = {
+          'type': type,
+          'title': _policiesData[type]!['title'],
+          'details': details,
+          'effective_date': _policiesData[type]!['effective_date'],
+        };
+
+        // Add scope-specific fields
+        if (widget.scope == 'employee' && widget.scopeId != null) {
+          policyData['employee'] = widget.scopeId;
+        } else if (widget.scope == 'department' && widget.scopeId != null) {
+          policyData['department'] = widget.scopeId;
+        } else if (widget.scopeId != null) {
+          policyData['company'] = widget.scopeId;
+        }
+
+        allPolicies.add(policyData);
+      }
+    }
+
+    // Dispatch CreateOrUpdatePolicy event
+    context.read<PolicyBloc>().add(
+      CreateOrUpdatePolicy(
+        policyData: {'policies': allPolicies},
+        isEdit: false,
+      ),
+    );
+  }
+
+  void _syncControllersWithData(String type) {
+    // Sync title controller
+    if (_titleControllers[type]!.text != _policiesData[type]!['title']) {
+      _titleControllers[type]!.text = _policiesData[type]!['title'] as String;
+    }
+
+    // Sync date controller
+    if (_dateControllers[type]!.text !=
+        _policiesData[type]!['effective_date']) {
+      _dateControllers[type]!.text =
+          _policiesData[type]!['effective_date'] as String;
     }
   }
 
   @override
   void dispose() {
-    _titleController.dispose();
-    _effectiveDateController.dispose();
+    _pageController.dispose();
+    for (final controller in _titleControllers.values) {
+      controller.dispose();
+    }
+    for (final controller in _dateControllers.values) {
+      controller.dispose();
+    }
     super.dispose();
   }
 }

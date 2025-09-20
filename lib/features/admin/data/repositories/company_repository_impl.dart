@@ -2,10 +2,10 @@ import 'package:dio/dio.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:hrms/core/config/local_storage_keys.dart';
 import 'package:hrms/core/di/get_it.dart';
-import 'package:hrms/core/routes/auth_routes.dart';
+import 'package:hrms/core/routes/company_routes.dart';
 import 'package:hrms/core/services/secure_storage_service.dart';
 import 'package:hrms/features/auth/domain/entities/company.dart';
-import 'package:hrms/features/auth/domain/repositories/company_repository.dart';
+import 'package:hrms/features/admin/domain/repositories/company_repository.dart';
 
 class CompanyRepositoryImpl implements CompanyRepository {
   final Dio dio;
@@ -14,7 +14,7 @@ class CompanyRepositoryImpl implements CompanyRepository {
 
   @override
   Future<Map<String, dynamic>> storeCompanyDetails(Company company) async {
-    final endpoint = '${dotenv.env['BASE_URL']}${AuthRoutes.companyDetails}';
+    final endpoint = '${dotenv.env['BASE_URL']}${CompanyRoutes.companyDetails}';
     final token = await getIt<SecureStorageService>().readData(
       LocalStorageKeys.token,
     );

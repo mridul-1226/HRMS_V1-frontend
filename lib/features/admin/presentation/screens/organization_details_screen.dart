@@ -8,7 +8,7 @@ import 'package:hrms/core/di/get_it.dart';
 import 'package:hrms/core/services/shared_pref_service.dart';
 import 'package:hrms/core/utils/toast.dart';
 import 'package:hrms/features/auth/domain/entities/company.dart';
-import 'package:hrms/features/auth/presentation/blocs/org_detail_bloc/org_detail_bloc.dart';
+import 'package:hrms/features/admin/presentation/blocs/org_detail_bloc/org_detail_bloc.dart';
 import 'package:fl_country_code_picker/fl_country_code_picker.dart';
 
 class OrganizationDetailsScreen extends StatefulWidget {
