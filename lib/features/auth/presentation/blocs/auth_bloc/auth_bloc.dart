@@ -33,6 +33,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         final companyJson = result['company'] as Map<String, dynamic>;
         final userRole = result['role']?.toString() ?? '';
         final hasCompanyPolicy = result['has_company_policy'] as bool? ?? false;
+        final departments = result['departments'].toString();
 
         final companyUser = CompanyModel.fromJson({'company': companyJson});
         final prefs = getIt<SharedPrefService>();
@@ -47,6 +48,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         );
         await prefs.setString(LocalStorageKeys.userRole, userRole);
         await prefs.setBool(LocalStorageKeys.policyFilled, hasCompanyPolicy);
+        await prefs.setString(LocalStorageKeys.departments, departments);
         await prefs.setString(
           LocalStorageKeys.profilePicture,
           userJson['profile_picture'] ?? '',
@@ -130,6 +132,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         final companyJson = result['company'] as Map<String, dynamic>;
         final userRole = result['role']?.toString() ?? '';
         final hasCompanyPolicy = result['has_company_policy'] as bool? ?? false;
+        final departments = result['departments'].toString();
 
         final companyUser = CompanyModel.fromJson(companyJson);
         final prefs = getIt<SharedPrefService>();
@@ -143,6 +146,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
           userJson['id'].toString(),
         );
         await prefs.setString(LocalStorageKeys.userRole, userRole);
+        await prefs.setString(LocalStorageKeys.departments, departments);
         await prefs.setBool(LocalStorageKeys.policyFilled, hasCompanyPolicy);
         await prefs.setString(
           LocalStorageKeys.profilePicture,

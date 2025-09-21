@@ -1,7 +1,9 @@
 import 'package:go_router/go_router.dart';
 import 'package:hrms/core/config/local_storage_keys.dart';
+import 'package:hrms/features/admin/presentation/screens/add_department_screen.dart';
 import 'package:hrms/features/admin/presentation/screens/admin_dashboard_screen.dart';
 import 'package:hrms/features/admin/presentation/screens/create_update_policy_screen.dart';
+import 'package:hrms/features/admin/presentation/screens/department_policy_screen.dart';
 import 'package:hrms/features/auth/presentation/screens/change_password_screen.dart';
 import 'package:hrms/features/auth/presentation/screens/forgot_password_screen.dart';
 import 'package:hrms/features/auth/presentation/screens/login_screen.dart';
@@ -64,6 +66,7 @@ final GoRouter router = GoRouter(
       name: 'change-password',
       builder: (context, state) => ChangePasswordScreen(),
     ),
+
     GoRoute(
       path: '/admin-dashboard',
       name: 'admin-dashboard',
@@ -72,9 +75,9 @@ final GoRouter router = GoRouter(
         final isPolicyFilled =
             prefs.getBool(LocalStorageKeys.policyFilled) ?? false;
         final scopeId = prefs.getString(LocalStorageKeys.companyId);
-        
+
         if (!isPolicyFilled) {
-            return '/create-policy?isEdit=false&scope=company&scopeId=$scopeId';
+          return '/create-policy?isEdit=false&scope=company&scopeId=$scopeId';
         }
         return null;
       },
@@ -85,13 +88,32 @@ final GoRouter router = GoRouter(
       name: 'create-policy',
       builder: (context, state) {
         final scope = state.uri.queryParameters['scope'] ?? 'company';
-        final scopeId = state.uri.queryParameters['scopeId'] != null
-            ? int.tryParse(state.uri.queryParameters['scopeId']!)
-            : null;
+        final scopeId =
+            state.uri.queryParameters['scopeId'] != null
+                ? int.tryParse(state.uri.queryParameters['scopeId']!)
+                : null;
+        final type = state.uri.queryParameters['type'];
         return CreateUpdatePolicyScreen(
           scope: scope,
           scopeId: scopeId,
+          type: type,
         );
+      },
+    ),
+    GoRoute(
+      path: '/add-department',
+      name: 'add-department',
+      builder: (context, state) {
+        return AddDepartmentScreen();
+      },
+    ),
+    GoRoute(
+      path: '/policy-list',
+      name: 'policy-list',
+      builder: (context, state) {
+        final scope = state.uri.queryParameters['scope'] ?? 'company';
+        final scopeId = state.uri.queryParameters['scopeId'] ?? '';
+        return DepartmentPolicyScreen(scope: scope, scopeId: scopeId);
       },
     ),
     // GoRoute(

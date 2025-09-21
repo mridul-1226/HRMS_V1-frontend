@@ -9,8 +9,14 @@ import 'package:hrms/features/admin/presentation/blocs/policy_bloc/policy_bloc.d
 class CreateUpdatePolicyScreen extends StatefulWidget {
   final String? scope;
   final int? scopeId;
+  final String? type;
 
-  const CreateUpdatePolicyScreen({super.key, this.scope, this.scopeId});
+  const CreateUpdatePolicyScreen({
+    super.key,
+    this.scope,
+    this.scopeId,
+    this.type,
+  });
 
   @override
   State<CreateUpdatePolicyScreen> createState() =>
@@ -42,6 +48,11 @@ class _CreateUpdatePolicyScreenState extends State<CreateUpdatePolicyScreen> {
   void initState() {
     super.initState();
     _initializePolicies();
+
+    if (widget.type != null) {
+      _policyTypes.clear();
+      _policyTypes.add(widget.type!);
+    }
 
     context.read<PolicyBloc>().add(
       LoadPolicies(scope: widget.scope ?? '', scopeId: widget.scopeId),
@@ -244,6 +255,11 @@ class _CreateUpdatePolicyScreenState extends State<CreateUpdatePolicyScreen> {
   }
 
   PreferredSizeWidget _buildAppBar() {
+    final title =
+        widget.type != null
+            ? 'Customize ${_getPolicyTypeTitle(widget.type!)}'
+            : 'Create Policies';
+
     return AppBar(
       backgroundColor: AppColors.white,
       elevation: 0,
@@ -252,7 +268,7 @@ class _CreateUpdatePolicyScreenState extends State<CreateUpdatePolicyScreen> {
         onPressed: () => context.pop(),
       ),
       title: Text(
-        'Create Policies',
+        title,
         style: AppTypography.headline6(color: AppColors.black),
       ),
       centerTitle: true,
