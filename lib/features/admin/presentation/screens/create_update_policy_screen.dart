@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hrms/core/config/color_cofig.dart';
 import 'package:hrms/core/config/text_config.dart';
+import 'package:hrms/core/utils/toast.dart';
 import 'package:hrms/features/admin/presentation/blocs/policy_bloc/policy_bloc.dart';
 
 class CreateUpdatePolicyScreen extends StatefulWidget {
@@ -20,11 +21,13 @@ class _CreateUpdatePolicyScreenState extends State<CreateUpdatePolicyScreen> {
   final PageController _pageController = PageController();
   int _currentPage = 0;
 
-  // Store all policies data
   final Map<String, Map<String, dynamic>> _policiesData = {};
   final Map<String, List<Map<String, String>>> _policiesDetails = {};
   final Map<String, TextEditingController> _titleControllers = {};
   final Map<String, TextEditingController> _dateControllers = {};
+
+  final Map<String, List<TextEditingController>> _detailKeyControllers = {};
+  final Map<String, List<TextEditingController>> _detailValueControllers = {};
 
   final List<String> _policyTypes = [
     'leave',
@@ -39,7 +42,7 @@ class _CreateUpdatePolicyScreenState extends State<CreateUpdatePolicyScreen> {
   void initState() {
     super.initState();
     _initializePolicies();
-    // Load policies when screen opens
+
     context.read<PolicyBloc>().add(
       LoadPolicies(scope: widget.scope ?? '', scopeId: widget.scopeId),
     );
@@ -51,18 +54,19 @@ class _CreateUpdatePolicyScreenState extends State<CreateUpdatePolicyScreen> {
         'type': type,
         'title': '',
         'effective_date': '',
-        'isEnabled': type != 'others', // Others is optional
+        'isEnabled': type != 'others',
       };
       _policiesDetails[type] = [
         {'key': '', 'value': ''},
       ];
       _titleControllers[type] = TextEditingController();
       _dateControllers[type] = TextEditingController();
+      _detailKeyControllers[type] = [TextEditingController()];
+      _detailValueControllers[type] = [TextEditingController()];
     }
   }
 
   void _loadExistingPolicies(List<Map<String, dynamic>> policies) {
-    // Clear all fields first
     _initializePolicies();
     for (final policy in policies) {
       final type = policy['type'] as String;
@@ -82,14 +86,25 @@ class _CreateUpdatePolicyScreenState extends State<CreateUpdatePolicyScreen> {
         if (_policiesDetails[type]!.isEmpty) {
           _policiesDetails[type]!.add({'key': '', 'value': ''});
         }
+        _detailKeyControllers[type] = [];
+        _detailValueControllers[type] = [];
+        for (final detail in _policiesDetails[type]!) {
+          final keyCtrl = TextEditingController(text: detail['key']);
+          final valueCtrl = TextEditingController(text: detail['value']);
+          _detailKeyControllers[type]!.add(keyCtrl);
+          _detailValueControllers[type]!.add(valueCtrl);
+        }
       }
     }
+    _syncControllersWithData(_policyTypes[_currentPage]);
     setState(() {});
   }
 
   void _addDetailField(String type) {
     setState(() {
       _policiesDetails[type]!.add({'key': '', 'value': ''});
+      _detailKeyControllers[type]!.add(TextEditingController());
+      _detailValueControllers[type]!.add(TextEditingController());
     });
   }
 
@@ -97,6 +112,10 @@ class _CreateUpdatePolicyScreenState extends State<CreateUpdatePolicyScreen> {
     if (_policiesDetails[type]!.length > 1) {
       setState(() {
         _policiesDetails[type]!.removeAt(index);
+        _detailKeyControllers[type]![index].dispose();
+        _detailValueControllers[type]![index].dispose();
+        _detailKeyControllers[type]!.removeAt(index);
+        _detailValueControllers[type]!.removeAt(index);
       });
     }
   }
@@ -144,7 +163,6 @@ class _CreateUpdatePolicyScreenState extends State<CreateUpdatePolicyScreen> {
   }
 
   void _skipOthers() {
-    // Mark others as disabled and submit all policies
     setState(() {
       _policiesData['others']!['isEnabled'] = false;
     });
@@ -158,35 +176,9 @@ class _CreateUpdatePolicyScreenState extends State<CreateUpdatePolicyScreen> {
         if (state is PolicyLoaded) {
           _loadExistingPolicies(state.policies);
         } else if (state is PolicyError) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                state.message,
-                style: AppTypography.body2(color: AppColors.white),
-              ),
-              backgroundColor: AppColors.error,
-              behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              duration: const Duration(seconds: 3),
-            ),
-          );
+          Toast.show(message: state.message, isError: true);
         } else if (state is PolicyOperationSuccess) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                state.message,
-                style: AppTypography.body2(color: AppColors.white),
-              ),
-              backgroundColor: AppColors.success,
-              behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              duration: const Duration(seconds: 3),
-            ),
-          );
+          Toast.show(message: state.message);
           context.goNamed('admin-dashboard');
         }
       },
@@ -241,7 +233,7 @@ class _CreateUpdatePolicyScreenState extends State<CreateUpdatePolicyScreen> {
               ),
               if (isScreenLoading)
                 Container(
-                  color: AppColors.white.withOpacity(0.7),
+                  color: AppColors.white.withValues(alpha: 0.7),
                   child: const Center(child: CircularProgressIndicator()),
                 ),
             ],
@@ -487,8 +479,18 @@ class _CreateUpdatePolicyScreenState extends State<CreateUpdatePolicyScreen> {
         const SizedBox(height: 16),
         ..._policiesDetails[type]!.asMap().entries.map((entry) {
           final index = entry.key;
-          final detail = entry.value;
           final isDuplicate = _getDuplicateIndices(type).contains(index);
+
+          final keyController = _detailKeyControllers[type]![index];
+          final valueController = _detailValueControllers[type]![index];
+
+          if (keyController.text != _policiesDetails[type]![index]['key']) {
+            keyController.text = _policiesDetails[type]![index]['key'] ?? '';
+          }
+          if (valueController.text != _policiesDetails[type]![index]['value']) {
+            valueController.text =
+                _policiesDetails[type]![index]['value'] ?? '';
+          }
 
           return Container(
             margin: const EdgeInsets.only(bottom: 16),
@@ -517,7 +519,7 @@ class _CreateUpdatePolicyScreenState extends State<CreateUpdatePolicyScreen> {
                   children: [
                     Expanded(
                       child: TextFormField(
-                        initialValue: detail['key'],
+                        controller: keyController,
                         onChanged: (value) {
                           setState(() {
                             _policiesDetails[type]![index]['key'] = value;
@@ -577,7 +579,7 @@ class _CreateUpdatePolicyScreenState extends State<CreateUpdatePolicyScreen> {
                     const SizedBox(width: 12),
                     Expanded(
                       child: TextFormField(
-                        initialValue: detail['value'],
+                        controller: valueController,
                         onChanged: (value) {
                           setState(() {
                             _policiesDetails[type]![index]['value'] = value;
@@ -907,42 +909,35 @@ class _CreateUpdatePolicyScreenState extends State<CreateUpdatePolicyScreen> {
   }
 
   void _validateAndNext(String currentType) {
-    // Validate current page before proceeding
     if (!_validateCurrentPage(currentType)) {
       return;
     }
 
-    // If validation passes, go to next page
     _nextPage();
   }
 
   bool _validateCurrentPage(String currentType) {
     final isEnabled = _policiesData[currentType]!['isEnabled'] as bool;
 
-    // If this policy type is disabled (only applies to 'others'), skip validation
     if (!isEnabled) {
       return true;
     }
 
-    // Check if title is filled
     if (_policiesData[currentType]!['title'].toString().isEmpty) {
       _showValidationError('Please enter a policy title');
       return false;
     }
 
-    // Check if effective date is selected
     if (_policiesData[currentType]!['effective_date'].toString().isEmpty) {
       _showValidationError('Please select an effective date');
       return false;
     }
 
-    // Check for duplicate keys
     if (_hasDuplicateKeys(currentType)) {
       _showValidationError('Please fix duplicate parameter names');
       return false;
     }
 
-    // Check if all detail fields are filled
     for (final detail in _policiesDetails[currentType]!) {
       final key = detail['key'];
       final value = detail['value'];
@@ -956,49 +951,33 @@ class _CreateUpdatePolicyScreenState extends State<CreateUpdatePolicyScreen> {
   }
 
   void _showValidationError(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          message,
-          style: AppTypography.body2(color: AppColors.white),
-        ),
-        backgroundColor: AppColors.error,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        duration: const Duration(seconds: 3),
-      ),
-    );
+    Toast.show(message: message);
   }
 
   void _handleSubmit() {
-    // Validate all enabled policies
     bool hasErrors = false;
     String errorMessage = '';
 
     for (final type in _policyTypes) {
       if (_policiesData[type]!['isEnabled'] as bool) {
-        // Check if title is filled
         if (_policiesData[type]!['title'].toString().isEmpty) {
           hasErrors = true;
           errorMessage = 'Please fill all policy titles';
           break;
         }
 
-        // Check if effective date is selected
         if (_policiesData[type]!['effective_date'].toString().isEmpty) {
           hasErrors = true;
           errorMessage = 'Please select effective dates for all policies';
           break;
         }
 
-        // Check for duplicate keys
         if (_hasDuplicateKeys(type)) {
           hasErrors = true;
           errorMessage = 'Please fix duplicate parameter names in all policies';
           break;
         }
 
-        // Check if all detail fields are filled
         for (final detail in _policiesDetails[type]!) {
           final key = detail['key'];
           final value = detail['value'];
@@ -1015,23 +994,10 @@ class _CreateUpdatePolicyScreenState extends State<CreateUpdatePolicyScreen> {
     }
 
     if (hasErrors) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            errorMessage,
-            style: AppTypography.body2(color: AppColors.white),
-          ),
-          backgroundColor: AppColors.error,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-        ),
-      );
+      Toast.show(message: errorMessage, isError: true);
       return;
     }
 
-    // Prepare all policies data
     final allPolicies = <Map<String, dynamic>>[];
 
     for (final type in _policyTypes) {
@@ -1056,7 +1022,6 @@ class _CreateUpdatePolicyScreenState extends State<CreateUpdatePolicyScreen> {
           'effective_date': _policiesData[type]!['effective_date'],
         };
 
-        // Add scope-specific fields
         if (widget.scope == 'employee' && widget.scopeId != null) {
           policyData['employee'] = widget.scopeId;
         } else if (widget.scope == 'department' && widget.scopeId != null) {
@@ -1069,7 +1034,6 @@ class _CreateUpdatePolicyScreenState extends State<CreateUpdatePolicyScreen> {
       }
     }
 
-    // Dispatch CreateOrUpdatePolicy event
     context.read<PolicyBloc>().add(
       CreateOrUpdatePolicy(
         policyData: {'policies': allPolicies},
@@ -1079,16 +1043,32 @@ class _CreateUpdatePolicyScreenState extends State<CreateUpdatePolicyScreen> {
   }
 
   void _syncControllersWithData(String type) {
-    // Sync title controller
     if (_titleControllers[type]!.text != _policiesData[type]!['title']) {
       _titleControllers[type]!.text = _policiesData[type]!['title'] as String;
     }
 
-    // Sync date controller
     if (_dateControllers[type]!.text !=
         _policiesData[type]!['effective_date']) {
       _dateControllers[type]!.text =
           _policiesData[type]!['effective_date'] as String;
+    }
+
+    final details = _policiesDetails[type]!;
+    if (_detailKeyControllers[type] == null ||
+        _detailKeyControllers[type]!.length != details.length) {
+      _detailKeyControllers[type] =
+          details.map((d) => TextEditingController(text: d['key'])).toList();
+      _detailValueControllers[type] =
+          details.map((d) => TextEditingController(text: d['value'])).toList();
+    } else {
+      for (int i = 0; i < details.length; i++) {
+        if (_detailKeyControllers[type]![i].text != details[i]['key']) {
+          _detailKeyControllers[type]![i].text = details[i]['key'] ?? '';
+        }
+        if (_detailValueControllers[type]![i].text != details[i]['value']) {
+          _detailValueControllers[type]![i].text = details[i]['value'] ?? '';
+        }
+      }
     }
   }
 
@@ -1100,6 +1080,16 @@ class _CreateUpdatePolicyScreenState extends State<CreateUpdatePolicyScreen> {
     }
     for (final controller in _dateControllers.values) {
       controller.dispose();
+    }
+    for (final list in _detailKeyControllers.values) {
+      for (final ctrl in list) {
+        ctrl.dispose();
+      }
+    }
+    for (final list in _detailValueControllers.values) {
+      for (final ctrl in list) {
+        ctrl.dispose();
+      }
     }
     super.dispose();
   }

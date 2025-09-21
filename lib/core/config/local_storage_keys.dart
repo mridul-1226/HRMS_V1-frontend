@@ -14,6 +14,7 @@ class LocalStorageKeys {
   static const String companyName = 'company_name';
   static const String companyEmail = 'company_email';
   static const String companyLogo = 'company_logo';
+  static const String departmentId = 'department_id';
   static const String employeeId = 'employee_id';
   static const String employeeName = 'employee_name';
   static const String employeeRole = 'employee_role';

@@ -21,7 +21,7 @@ class PolicyBloc extends Bloc<PolicyEvent, PolicyState> {
 
         emit(PolicyLoaded(policies));
       } catch (e) {
-        emit(const PolicyError('Failed to load policies'));
+        emit(PolicyError(e.toString()));
       }
     });
 
@@ -38,7 +38,7 @@ class PolicyBloc extends Bloc<PolicyEvent, PolicyState> {
 
         emit(PolicyOperationSuccess(updatedPolicy['message'] ?? ''));
       } catch (e) {
-        emit(const PolicyError('Failed to create/update policy'));
+        emit(PolicyError(e.toString()));
       }
     });
   }

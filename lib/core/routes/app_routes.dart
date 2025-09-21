@@ -71,9 +71,10 @@ final GoRouter router = GoRouter(
         final prefs = await SharedPreferences.getInstance();
         final isPolicyFilled =
             prefs.getBool(LocalStorageKeys.policyFilled) ?? false;
-        final companyId = prefs.getString(LocalStorageKeys.companyId);
+        final scopeId = prefs.getString(LocalStorageKeys.companyId);
+        
         if (!isPolicyFilled) {
-            return '/create-policy?isEdit=false&scope=company&scopeId=$companyId';
+            return '/create-policy?isEdit=false&scope=company&scopeId=$scopeId';
         }
         return null;
       },
@@ -83,9 +84,10 @@ final GoRouter router = GoRouter(
       path: '/create-policy',
       name: 'create-policy',
       builder: (context, state) {
-        final isEdit = state.uri.queryParameters['isEdit'] == 'true';
         final scope = state.uri.queryParameters['scope'] ?? 'company';
-        final scopeId = int.tryParse(state.uri.queryParameters['scopeId'] ?? '0') ?? 0;
+        final scopeId = state.uri.queryParameters['scopeId'] != null
+            ? int.tryParse(state.uri.queryParameters['scopeId']!)
+            : null;
         return CreateUpdatePolicyScreen(
           scope: scope,
           scopeId: scopeId,
